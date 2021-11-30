@@ -183,7 +183,7 @@ if __name__ == "__main__":
 
   parser.add_argument('--height', type=int, default=320)
   parser.add_argument('--width', type=int, default=320)
-  parser.add_argument('--model', choices= Classifiers.models_names())
+  parser.add_argument('--model_name', choices= Classifiers.models_names())
   parser.add_argument('--seed', type=int, default= 0)
   parser.add_argument('--weights')
   parser.add_argument('--n_labels', type=int)
@@ -207,7 +207,7 @@ if __name__ == "__main__":
   parser.add_argument('--resume', choices = ["True", "False"])
 
   args = parser.parse_args()
-
+  
   args.multi_label = args.multi_label.title() == "True"
   args.horizontal_flip = args.horizontal_flip.title() == "True"
   args.crop_to_aspect_ratio = args.crop_to_aspect_ratio.title() == "True"
@@ -220,10 +220,12 @@ if __name__ == "__main__":
     args.weights= None
 
 
-  train(args.dataset, args.split_path, args.tag,
-        args.height, args.width, args.model, args.seed, args.weights, args.n_labels,
-        args.freeze, args.resume, args.output_dir, args.multi_label,
-        learning_rate= args.learning_rate, momentum_val=args.momentum_val, decay_val=args.decay_val,
-        batch_size= args.batch_size, rotation_range= args.rotation_range, fill_mode= args.fill_mode,
-            horizontal_flip= args.horizontal_flip, crop_to_aspect_ratio= args.crop_to_aspect_ratio,
-            zoom_range= args.zoom_range, class_mode= args.class_mode)
+  train(args.dataset, args.split_path, args.tag, 
+        args.model_name, args.seed, args.weights,
+        args.n_labels, args.freeze, args.resume,
+        args.output_dir, args.multi_label, batch_size= args.batch_size,
+        height = args.height, width = args.width, learning_rate= args.learning_rate,
+        momentum_val=args.momentum_val, decay_val=args.decay_val,
+        rotation_range= args.rotation_range, fill_mode= args.fill_mode,
+        horizontal_flip= args.horizontal_flip, crop_to_aspect_ratio= args.crop_to_aspect_ratio,
+        zoom_range= args.zoom_range, class_mode= args.class_mode)
