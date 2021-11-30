@@ -203,7 +203,7 @@ if __name__ == "__main__":
   parser.add_argument('--zoom_range', type=float, default=0.1)
 
   parser.add_argument('--class_mode', default="raw", choices = ["categorical", "raw"])
-  parser.add_argument('--freeze', type=int)
+  parser.add_argument('--freeze')
   parser.add_argument('--resume', choices = ["True", "False"])
 
   args = parser.parse_args()
@@ -212,6 +212,10 @@ if __name__ == "__main__":
   args.horizontal_flip = args.horizontal_flip.title() == "True"
   args.crop_to_aspect_ratio = args.crop_to_aspect_ratio.title() == "True"
   args.resume = args.resume.title() == "True"
+  if args.freeze == "None":
+    args.freeze= None
+  else:
+    args.freeze = int(args.freeze)
 
 
   train(args.dataset, args.split_path, args.tag,
