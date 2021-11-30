@@ -94,17 +94,17 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
 
   # Resume #TODO
   start_epoch = 0
-  if args.resume and os.path.isdir(os.path.join(args.output_dir, "checkpoints")):
-    checkpoints = {}
-    files = os.listdir(os.path.join(args.output_dir, "checkpoints"))
-    files = [f for f in files if ".hdf5" in f]
-    if len(files) > 0:
-      for f in files:
-        epoch = int([v for c in f.split("_") if "epoch" in c for v in c.split(":")][1])
-        checkpoints[epoch] = f
-      start_epoch = max(list(checkpoints.keys()))
-      adjusted_model.load_weights(os.path.join(args.output_dir, "checkpoints", checkpoints[start_epoch]) )
-      print(f"Resuming from epoch {start_epoch}")
+  # if args.resume and os.path.isdir(os.path.join(args.output_dir, "checkpoints")):
+  #   checkpoints = {}
+  #   files = os.listdir(os.path.join(args.output_dir, "checkpoints"))
+  #   files = [f for f in files if ".hdf5" in f]
+  #   if len(files) > 0:
+  #     for f in files:
+  #       epoch = int([v for c in f.split("_") if "epoch" in c for v in c.split(":")][1])
+  #       checkpoints[epoch] = f
+  #     start_epoch = max(list(checkpoints.keys()))
+  #     adjusted_model.load_weights(os.path.join(args.output_dir, "checkpoints", checkpoints[start_epoch]) )
+  #     print(f"Resuming from epoch {start_epoch}")
     
   # Freeze
   if freeze != None:
@@ -157,15 +157,15 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   # Setup Checkpoints #TODO
   var_date = datetime.now().strftime("%Y%m%d-%H%M%S")
   ES = EarlyStopping(monitor='val_loss', mode='min', patience=4, restore_best_weights=True)
-  checkpoint_filename =  str(arc_name) + str(args.learning_rate) + "_" + var_date+"_epoch:{epoch:03d}_val_loss:{val_loss:.5f}.hdf5"
-  checkloss = ModelCheckpoint(os.path.join(args.output_dir, "checkpoints", checkpoint_filename),
+  checkpoint_filename =  str(arc_name) + str(learning_rate) + "_" + var_date+"_epoch:{epoch:03d}_val_loss:{val_loss:.5f}.hdf5"
+  checkloss = ModelCheckpoint(os.path.join(output_dir, "checkpoints", checkpoint_filename),
                             monitor='val_loss', mode='min', verbose=1, save_best_only=False, save_weights_only=False,save_freq='epoch')
-  log_dir = os.path.join(args.output_dir, "logs", var_date)
+  log_dir = os.path.join(output_dir, "logs", var_date)
   tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
-  if not os.path.exists(os.path.join(args.output_dir, "params")):
-    os.mkdir(os.path.join(args.output_dir, "params"))
-  arguments_file = open(os.path.join(args.output_dir, "params", f"params_{var_date}.json"), "w")
-  json.dump(args.__dict__, arguments_file, indent=2) # TODO this shuld be uncommented in script
+  if not os.path.exists(os.path.join(output_dir, "params")):
+    os.mkdir(os.path.join(output_dir, "params"))
+  arguments_file = open(os.path.join(output_dir, "params", f"params_{var_date}.json"), "w")
+  json.dump(locals(), arguments_file, indent=2) # TODO this shuld be uncommented in script
 
   # Train Model
   adjusted_model.fit(train_batches, validation_data=validate_batches,
@@ -216,6 +216,8 @@ if __name__ == "__main__":
     args.freeze= None
   else:
     args.freeze = int(args.freeze)
+  if args.weights == "None":
+    args.weights= None
 
 
   train(args.dataset, args.split_path, args.tag,
