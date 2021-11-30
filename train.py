@@ -47,10 +47,9 @@ def prepare_split_dataset(dataset_path, split_path):
 
   return train_df, validation_df, test_df
 
-def train(dataset_path, split_path, img_root_dir, tag,
-          height, width, model_name, seed, weights, n_labels,
+def train(dataset_path, split_path, img_root_dir, tag, model_name, seed, weights, n_labels,
           freeze, resume, output_dir, multi_label, batch_size= 32,
-          learning_rate= 1e-3, momentum_val=0.9, decay_val=0.0,
+          height=320, width=320, learning_rate= 1e-3, momentum_val=0.9, decay_val=0.0,
           rotation_range=15, fill_mode="constant", horizontal_flip= True,
           crop_to_aspect_ratio= True, zoom_range=0.1,
           class_mode= "raw"):
