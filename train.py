@@ -47,7 +47,7 @@ def prepare_split_dataset(dataset_path, split_path):
 
   return train_df, validation_df, test_df
 
-def train(dataset_path, split_path, img_root_dir, tag, model_name, seed, weights, n_labels,
+def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
           freeze, resume, output_dir, multi_label, batch_size= 32,
           height=320, width=320, learning_rate= 1e-3, momentum_val=0.9, decay_val=0.0,
           rotation_range=15, fill_mode="constant", horizontal_flip= True,
@@ -61,8 +61,19 @@ def train(dataset_path, split_path, img_root_dir, tag, model_name, seed, weights
   else:
       activation = "softmax"
 
+  if "chexpert" in dataset.lower():
+    img_root_dir = "./Datasets/Chexpert/"
+    if "pathology" in dataset.lower():
+      dataset_path = "./Datasets/Chexpert/csv/pathology_train.csv"
+    elif "race" in dataset.lower():  
+      dataset_path = "./Datasets/Chexpert/csv/race_train.csv"
+    else:
+      raise Exception("For chexpert dataset have to be 'chexpert_pathology' or 'chexpert_race'")
+  else:
+    raise Exception("Not supported dataset")
+
   # Preparing Datasets
-  train_df, validation_df, test_df = prepare_split_dataset(dataset_path, split_path)
+  train_df, validation_df, test_df = prepare_split_dataset(dataset_path, split_file)
 
   #TODO
   arc_name = f"{tag}-{height}x{width}_{get_split_percent_as_str(train_df, validation_df, test_df)}_{model_name}"
@@ -165,10 +176,9 @@ def train(dataset_path, split_path, img_root_dir, tag, model_name, seed, weights
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='A module to train models')
 
-  parser.add_argument('--dataset_path')
+  parser.add_argument('--dataset', choices=["chexpert_race", "chexpert_pathology"])
   parser.add_argument('--split_path')
   parser.add_argument("--output_dir")
-  parser.add_argument('--img_root_dir')
   parser.add_argument('--tag', default = "v1")
 
   parser.add_argument('--height', type=int, default=320)
@@ -204,7 +214,7 @@ if __name__ == "__main__":
   args.resume = args.resume.title() == "True"
 
 
-  train(args.dataset_path, args.split_path, args.img_root_dir, args.tag,
+  train(args.dataset, args.split_path, args.tag,
         args.height, args.width, args.model, args.seed, args.weights, args.n_labels,
         args.freeze, args.resume, args.output_dir, args.multi_label,
         learning_rate= args.learning_rate, momentum_val=args.momentum_val, decay_val=args.decay_val,
