@@ -54,6 +54,9 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
           crop_to_aspect_ratio= True, zoom_range=0.1,
           class_mode= "raw"):
 
+  # save arguments
+  arguments_dict = locals()
+
   set_seed(seed)
 
   if multi_label:
@@ -165,7 +168,7 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   if not os.path.exists(os.path.join(output_dir, "params")):
     os.mkdir(os.path.join(output_dir, "params"))
   arguments_file = open(os.path.join(output_dir, "params", f"params_{var_date}.json"), "w")
-  json.dump(locals(), arguments_file, indent=2) # TODO this shuld be uncommented in script
+  json.dump(arguments_dict, arguments_file, indent=2) # TODO this shuld be uncommented in script
 
   # Train Model
   adjusted_model.fit(train_batches, validation_data=validate_batches,
