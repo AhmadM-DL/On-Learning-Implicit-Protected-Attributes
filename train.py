@@ -216,6 +216,9 @@ if __name__ == "__main__":
     args.freeze= None
   else:
     args.freeze = int(args.freeze)
+  if args.weights == "None":
+    args.weights= None
+
 
   train(args.dataset, args.split_path, args.tag, 
         args.model_name, args.seed, args.weights,
