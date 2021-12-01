@@ -95,44 +95,32 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   # Adjust head
   input_shape = (height, width, 3)
 
-  # Load and Set model
-  base_model = model(input_tensor = Input(input_shape), include_top = False, 
-                    input_shape = input_shape, weights = weights)
-  x = GlobalAveragePooling2D()(base_model.output)
-  x = Dense(n_labels, name='dense_logits')(x)
-  predictions = Activation(activation, dtype='float32', name='predictions')(x)
-  adjusted_model = Model(inputs=base_model.input, outputs=predictions)
-
-  # Resume #TODO
+  # Resume
   start_epoch = 0
-  # if args.resume and os.path.isdir(os.path.join(args.output_dir, "checkpoints")):
-  #   checkpoints = {}
-  #   files = os.listdir(os.path.join(args.output_dir, "checkpoints"))
-  #   files = [f for f in files if ".hdf5" in f]
-  #   if len(files) > 0:
-  #     for f in files:
-  #       epoch = int([v for c in f.split("_") if "epoch" in c for v in c.split(":")][1])
-  #       checkpoints[epoch] = f
-  #     start_epoch = max(list(checkpoints.keys()))
-  #     adjusted_model.load_weights(os.path.join(args.output_dir, "checkpoints", checkpoints[start_epoch]) )
-  #     print(f"Resuming from epoch {start_epoch}")
-    
-  # Freeze
-  if freeze != None:
-    for layers in adjusted_model.layers[:freeze]:
-      layers.trainable = False
-
-  # Learning Configuration
-  reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0.1,
-                                patience=2, min_lr=1e-5, verbose=1)
-  adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate, decay=decay_val)
-  adam_opt = tf.keras.mixed_precision.LossScaleOptimizer(adam_opt)
-
-  # Compile
-  adjusted_model.compile(optimizer=adam_opt, loss='binary_crossentropy',
-                metrics=[ tf.keras.metrics.AUC(curve='ROC', name='ROC-AUC', multi_label = multi_label),
-                          tf.keras.metrics.AUC(curve='PR', name='PR-AUC', multi_label = multi_label),
-                          'accuracy'])
+  if resume and os.path.exists(os.path.join(output_dir, "config.json")):
+      start_epoch = json.load(os.path.join(output_dir, "config.json"))["epoch"]
+      adjusted_model = load_model(os.path.join(output_dir, "checkpoints", arc_name + ".hdf5"))
+      print(f"Resuming from epoch {start_epoch}")
+  else:
+    # Load and Set model
+    base_model = model(input_tensor = Input(input_shape), include_top = False, 
+                      input_shape = input_shape, weights = weights)
+    x = GlobalAveragePooling2D()(base_model.output)
+    x = Dense(n_labels, name='dense_logits')(x)
+    predictions = Activation(activation, dtype='float32', name='predictions')(x)
+    adjusted_model = Model(inputs=base_model.input, outputs=predictions)    
+    # Freeze
+    if freeze != None:
+      for layers in adjusted_model.layers[:freeze]:
+        layers.trainable = False
+    # Learning Configuration
+    adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate, decay=decay_val)
+    adam_opt = tf.keras.mixed_precision.LossScaleOptimizer(adam_opt)
+    # Compile
+    adjusted_model.compile(optimizer=adam_opt, loss='binary_crossentropy',
+                  metrics=[ tf.keras.metrics.AUC(curve='ROC', name='ROC-AUC', multi_label = multi_label),
+                            tf.keras.metrics.AUC(curve='PR', name='PR-AUC', multi_label = multi_label),
+                            'accuracy'])
   # Data Loaders
   train_gen = ImageDataGenerator(rotation_range= rotation_range,
                                  fill_mode= fill_mode,
@@ -152,7 +140,6 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
                                                seed= seed,
                                                crop_to_aspect_ratio= crop_to_aspect_ratio,
                                                batch_size= batch_size)
-  
   validate_batches= validate_gen.flow_from_dataframe(dataframe= validation_df,
                                                     directory= img_root_dir,
                                                     x_col= validation_df.columns[0],
@@ -161,11 +148,9 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
                                                     target_size= (height, width),
                                                     shuffle= False,
                                                     batch_size= batch_size)
-
   train_epoch = math.ceil(len(train_df) / batch_size)
   val_epoch = math.ceil(len(validation_df) / batch_size)
-
-  # Setup Checkpoints #TODO
+  # Setup Checkpoints
   save_last_model = ModelCheckpoint(
     os.path.join(output_dir, "checkpoints", arc_name + ".hdf5"),
     verbose=1, save_weights_only=False, save_freq='epoch')
@@ -174,19 +159,17 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
     monitor="val_loss", mode="min", save_best_only= True, verbose=1,
     save_weights_only=False, save_freq='epoch')
   save_last_epoch = SaveEpoch(output_dir, filename= "config.json")
-  log_dir = os.path.join(output_dir, "logs")
+  log_dir = os.path.join(output_dir, "logs", )
   tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
   if not os.path.exists(os.path.join(output_dir, "params")):
     os.mkdir(os.path.join(output_dir, "params"))
   arguments_file = open(os.path.join(output_dir, "params", "params.json"), "w")
   json.dump(arguments_dict, arguments_file, indent=2) # TODO this shuld be uncommented in script
-
   # Train Model
   adjusted_model.fit(train_batches, validation_data=validate_batches,
             steps_per_epoch=int(train_epoch), validation_steps=int(val_epoch),
             epochs = 50, initial_epoch=start_epoch, workers=32, max_queue_size=50,
             callbacks=[save_last_model, save_best_model, save_last_epoch, tensorboard_callback])              
-
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='A module to train models')
 
@@ -232,8 +215,6 @@ if __name__ == "__main__":
     args.freeze = int(args.freeze)
   if args.weights == "None":
     args.weights= None
-
-
   train(args.dataset, args.split_path, args.tag, 
         args.model_name, args.seed, args.weights,
         args.n_labels, args.freeze, args.resume,
