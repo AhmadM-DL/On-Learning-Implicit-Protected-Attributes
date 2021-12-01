@@ -1,16 +1,16 @@
 import numpy as np
 import pandas as pd
 import random, math, argparse, os
-from datetime import datetime
 import json
 
 import tensorflow as tf
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
 from tensorflow.keras.layers import Input, GlobalAveragePooling2D, Dense, Activation
 from tensorflow.keras.models import Model
-from tensorflow.keras.callbacks import EarlyStopping, LearningRateScheduler, ReduceLROnPlateau, ModelCheckpoint
+from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from classification_models.tfkeras import Classifiers
+from tensorflow.keras.models import load_model
 import keras
 
 def set_seed(seed):
@@ -53,7 +53,7 @@ class SaveEpoch(keras.callbacks.Callback):
       self.output_dir = output_dir
       self.filename= filename
     def on_epoch_end(self, epoch, logs=None):
-      json.dump({"epoch": epoch}, open(os.path.join(self.output_dir, self.filename)))
+      json.dump({"epoch": epoch}, open(os.path.join(self.output_dir, self.filename), "w"))
 
 def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
           freeze, resume, output_dir, multi_label, batch_size= 32,
@@ -98,7 +98,7 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   # Resume
   start_epoch = 0
   if resume and os.path.exists(os.path.join(output_dir, "config.json")):
-      start_epoch = json.load(os.path.join(output_dir, "config.json"))["epoch"]
+      start_epoch = json.load(open(os.path.join(output_dir, "config.json")))["epoch"]
       adjusted_model = load_model(os.path.join(output_dir, "checkpoints", arc_name + ".hdf5"))
       print(f"Resuming from epoch {start_epoch}")
   else:
