@@ -11,6 +11,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.callbacks import EarlyStopping, LearningRateScheduler, ReduceLROnPlateau, ModelCheckpoint
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from classification_models.tfkeras import Classifiers
+import keras
 
 def set_seed(seed):
   np.random.seed(seed)
@@ -46,6 +47,13 @@ def prepare_split_dataset(dataset_path, split_path):
   test_df = data_df[data_df.split=="test"].loc[:, data_df.columns != "split"]
 
   return train_df, validation_df, test_df
+
+class SaveEpoch(keras.callbacks.Callback):
+    def __init__(self, output_dir, filename="config.json"):
+      self.output_dir = output_dir
+      self.filename= filename
+    def on_epoch_end(self, epoch, logs=None):
+      json.dump({"epoch": epoch}, open(os.path.join(self.output_dir, self.filename)))
 
 def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
           freeze, resume, output_dir, multi_label, batch_size= 32,
@@ -158,23 +166,26 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   val_epoch = math.ceil(len(validation_df) / batch_size)
 
   # Setup Checkpoints #TODO
-  var_date = datetime.now().strftime("%Y%m%d-%H%M%S")
-  ES = EarlyStopping(monitor='val_loss', mode='min', patience=4, restore_best_weights=True)
-  checkpoint_filename =  str(arc_name) + str(learning_rate) + "_" + var_date+"_epoch:{epoch:03d}_val_loss:{val_loss:.5f}.hdf5"
-  checkloss = ModelCheckpoint(os.path.join(output_dir, "checkpoints", checkpoint_filename),
-                            monitor='val_loss', mode='min', verbose=1, save_best_only=False, save_weights_only=False,save_freq='epoch')
-  log_dir = os.path.join(output_dir, "logs", var_date)
+  save_last_model = ModelCheckpoint(
+    os.path.join(output_dir, "checkpoints", arc_name + ".hdf5"),
+    verbose=1, save_weights_only=False, save_freq='epoch')
+  save_best_model = ModelCheckpoint(
+    os.path.join(output_dir, "checkpoints", arc_name + "_best.hdf5"),
+    monitor="val_loss", mode="min", save_best_only= True, verbose=1,
+    save_weights_only=False, save_freq='epoch')
+  save_last_epoch = SaveEpoch(output_dir, filename= "config.json")
+  log_dir = os.path.join(output_dir, "logs")
   tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
   if not os.path.exists(os.path.join(output_dir, "params")):
     os.mkdir(os.path.join(output_dir, "params"))
-  arguments_file = open(os.path.join(output_dir, "params", f"params_{var_date}.json"), "w")
+  arguments_file = open(os.path.join(output_dir, "params", "params.json"), "w")
   json.dump(arguments_dict, arguments_file, indent=2) # TODO this shuld be uncommented in script
 
   # Train Model
   adjusted_model.fit(train_batches, validation_data=validate_batches,
             steps_per_epoch=int(train_epoch), validation_steps=int(val_epoch),
             epochs = 50, initial_epoch=start_epoch, workers=32, max_queue_size=50,
-            callbacks=[checkloss, reduce_lr, ES, tensorboard_callback])              
+            callbacks=[save_last_model, save_best_model, save_last_epoch, tensorboard_callback])              
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='A module to train models')
