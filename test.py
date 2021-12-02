@@ -1,17 +1,12 @@
 import numpy as np
 import pandas as pd
 import random, math, argparse, os
-from datetime import datetime
 import json
 
-import tensorflow as tf
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
-from tensorflow.keras.layers import Input, GlobalAveragePooling2D, Dense, Activation
-from tensorflow.keras.models import Model
-from tensorflow.keras.callbacks import EarlyStopping, LearningRateScheduler, ReduceLROnPlateau, ModelCheckpoint
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from classification_models.tfkeras import Classifiers
-
+from tensorflow.keras.models import load_model
 
 def use_mixed_precision():
   policy = mixed_precision.Policy('mixed_float16')
@@ -29,28 +24,26 @@ def prepare_split_dataset(dataset_path, split_path):
 
   return train_df, validation_df, test_df
 
-def test(dataset_path, split_path, img_root_dir, tag,
-          height, width, model_name, pretrain_model_path, n_labels,
-          output_dir, multi_label, batch_size, class_mode= "raw"):
-
+def test(dataset, split_path, model_name, pretrain_model_path,
+         batch_size= 32, class_mode= "raw", height=320, width=320):
   # Preparing Datasets
-  train_df, validation_df, test_df = prepare_split_dataset(dataset_path, split_path)
-
-  #TODO
-  arc_name = f"{tag}-{height}x{width}_{get_split_percent_as_str(train_df, validation_df, test_df)}_{model}"
-
+  if "chexpert" in dataset.lower():
+    img_root_dir = "./Datasets/Chexpert/"
+    if "pathology" in dataset.lower():
+      dataset_path = "./Datasets/Chexpert/csv/pathology_train.csv"
+    elif "race" in dataset.lower():  
+      dataset_path = "./Datasets/Chexpert/csv/race_train.csv"
+    else:
+      raise Exception("For chexpert dataset have to be 'chexpert_pathology' or 'chexpert_race'")
+  else:
+    raise Exception("Not supported dataset")
+  _, _, test_df = prepare_split_dataset(dataset_path, split_path)
   # Load model
   _, preprocess_input = Classifiers.get(model_name)
-
-  # Adjust head
-  input_shape = (height, width, 3)
-
   # Load and Set model
   model = load_model(pretrain_model_path)
-
   # Data Loaders
   test_gen = ImageDataGenerator(preprocessing_function=preprocess_input)
-
   test_batches= test_gen.flow_from_dataframe(dataframe= test_df,
                                                     directory= img_root_dir,
                                                     x_col= test_df.columns[0],
@@ -59,23 +52,9 @@ def test(dataset_path, split_path, img_root_dir, tag,
                                                     target_size= (height, width),
                                                     shuffle= False,
                                                     batch_size= batch_size)
-
-  test_epoch = math.ceil(len(test_df) / batch_size)
-
-  # Setup Checkpoints #TODO
-
-  checkpoint_filename =  str(arc_name) + str(args.learning_rate) + "_" + var_date+"_epoch:{epoch:03d}_val_loss:{val_loss:.5f}.hdf5"
-  log_dir = os.path.join(args.output_dir, "logs", var_date)
-  if not os.path.exists(os.path.join(args.output_dir, "params")):
-    os.mkdir(os.path.join(args.output_dir, "params"))
-  arguments_file = open(os.path.join(args.output_dir, "params", f"params_{var_date}.json"), "w")
-  json.dump(args.__dict__, arguments_file, indent=2) # TODO this shuld be uncommented in script
-
-  # Train Model
-  adjusted_model.fit(train_batches, validation_data=validate_batches,
-            steps_per_epoch=int(train_epoch), validation_steps=int(val_epoch),
-            epochs = 50, initial_epoch=start_epoch, workers=32, max_queue_size=50,
-            callbacks=[checkloss, reduce_lr, ES, tensorboard_callback])              
+  # test_epoch = math.ceil(len(test_df) / batch_size)
+  results = model.evaluate(test_batches)
+  return results
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='A module to train models')
