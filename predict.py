@@ -61,7 +61,7 @@ def predict(dataset, split_path, model_name, pretrain_model_path, tag="test_pred
     columns= test_df.columns[1:].tolist() + [c+"_gt" for c in test_df.columns[1:]]
   )
   results_groundtruth.to_csv(os.path.join(output_dir, tag+".csv"))
-  return
+  return predictions
 
 if __name__ == "__main__":
 
