@@ -38,7 +38,6 @@ def predict(dataset, split_path, model_name, pretrain_model_path, tag="test_pred
   else:
     raise Exception("Not supported dataset")
   _, _, test_df = prepare_split_dataset(dataset_path, split_path)
-  test_df = test_df.iloc[:100, :]
   
   # Load model
   _, preprocess_input = Classifiers.get(model_name)
