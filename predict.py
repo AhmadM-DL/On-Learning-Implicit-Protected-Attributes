@@ -24,8 +24,8 @@ def prepare_split_dataset(dataset_path, split_path):
 
   return train_df, validation_df, test_df
 
-def predict(dataset, split_path, model_name, pretrain_model_path, tag="test_predict_probability",
-         output_dir="./", batch_size= 32, class_mode= "raw", height=320, width=320):
+def predict(dataset, split_path, model_name, pretrain_model_path, output_dir,
+           tag="test_predict_probability", batch_size= 32, class_mode= "raw", height=320, width=320):
   # Preparing Datasets
   if "chexpert" in dataset.lower():
     img_root_dir = "./Datasets/Chexpert/"
@@ -59,8 +59,9 @@ def predict(dataset, split_path, model_name, pretrain_model_path, tag="test_pred
     np.concatenate([predictions, test_df.iloc[:, 1:].values], axis=1),
     columns= test_df.columns[1:].tolist() + [c+"_gt" for c in test_df.columns[1:]]
   )
-  results_groundtruth.to_csv(os.path.join(output_dir, tag+".csv"))
-  return predictions
+  if output_dir:
+    results_groundtruth.to_csv(os.path.join(output_dir, tag+".csv"))
+  return predictions, test_df.iloc[:, 1:].values
 
 if __name__ == "__main__":
 
