@@ -7,7 +7,7 @@ import tensorflow as tf
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
 from tensorflow.keras.layers import Input, GlobalAveragePooling2D, Dense, Activation
 from tensorflow.keras.models import Model
-from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.callbacks import ModelCheckpoint,ReduceLROnPlateau
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from classification_models.tfkeras import Classifiers
 from tensorflow.keras.models import load_model
@@ -56,7 +56,7 @@ class SaveEpoch(keras.callbacks.Callback):
       json.dump({"epoch": epoch}, open(os.path.join(self.output_dir, self.filename), "w"))
 
 def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
-          freeze, resume, output_dir, multi_label, batch_size= 32,
+          freeze, resume, output_dir, multi_label,reduce_lr_on_plateau,batch_size= 32,
           height=320, width=320, learning_rate= 1e-3, momentum_val=0.9, decay_val=0.0,
           rotation_range=15, fill_mode="constant", horizontal_flip= True,
           crop_to_aspect_ratio= True, zoom_range=0.1,
@@ -87,7 +87,7 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   train_df, validation_df, test_df = prepare_split_dataset(dataset_path, split_file)
 
   #TODO
-  arc_name = f"{tag}-{height}x{width}_{get_split_percent_as_str(train_df, validation_df, test_df)}_{model_name}"
+  arc_name = f"{tag}_{height}x{width}_{get_split_percent_as_str(train_df, validation_df, test_df)}{model_name}"
 
   # Load model
   model, preprocess_input = Classifiers.get(model_name)
@@ -150,6 +150,7 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
                                                     batch_size= batch_size)
   train_epoch = math.ceil(len(train_df) / batch_size)
   val_epoch = math.ceil(len(validation_df) / batch_size)
+  
   # Setup Checkpoints
   save_last_model = ModelCheckpoint(
     os.path.join(output_dir, "checkpoints", arc_name + ".hdf5"),
@@ -161,6 +162,10 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   save_last_epoch = SaveEpoch(output_dir, filename= "config.json")
   log_dir = os.path.join(output_dir, "logs", )
   tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+  if reduce_lr_on_plateau:
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0.1, patience=2, min_lr=1e-5, verbose=1)
+  else:
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0, patience=2, min_lr=1e-5, verbose=1)
   if not os.path.exists(os.path.join(output_dir, "params")):
     os.mkdir(os.path.join(output_dir, "params"))
   arguments_file = open(os.path.join(output_dir, "params", "params.json"), "w")
@@ -169,7 +174,8 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   adjusted_model.fit(train_batches, validation_data=validate_batches,
             steps_per_epoch=int(train_epoch), validation_steps=int(val_epoch),
             epochs = 50, initial_epoch=start_epoch, workers=32, max_queue_size=50,
-            callbacks=[save_last_model, save_best_model, save_last_epoch, tensorboard_callback])              
+            callbacks=[save_last_model, save_best_model, save_last_epoch, tensorboard_callback,reduce_lr]) 
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='A module to train models')
 
@@ -202,6 +208,7 @@ if __name__ == "__main__":
   parser.add_argument('--class_mode', default="raw", choices = ["categorical", "raw"])
   parser.add_argument('--freeze')
   parser.add_argument('--resume', choices = ["True", "False"])
+  parser.add_argument('--reduce_lr_on_plateau',default='True', choices = ["True", "False"])
 
   args = parser.parse_args()
   
@@ -209,16 +216,18 @@ if __name__ == "__main__":
   args.horizontal_flip = args.horizontal_flip.title() == "True"
   args.crop_to_aspect_ratio = args.crop_to_aspect_ratio.title() == "True"
   args.resume = args.resume.title() == "True"
+  args.reduce_lr_on_plateau=args.reduce_lr_on_plateau.title()=="True"
   if args.freeze == "None":
     args.freeze= None
   else:
     args.freeze = int(args.freeze)
   if args.weights == "None":
     args.weights= None
+  
   train(args.dataset, args.split_path, args.tag, 
         args.model_name, args.seed, args.weights,
         args.n_labels, args.freeze, args.resume,
-        args.output_dir, args.multi_label, batch_size= args.batch_size,
+        args.output_dir, args.multi_label,args.reduce_lr_on_plateau, batch_size= args.batch_size,
         height = args.height, width = args.width, learning_rate= args.learning_rate,
         momentum_val=args.momentum_val, decay_val=args.decay_val,
         rotation_range= args.rotation_range, fill_mode= args.fill_mode,
