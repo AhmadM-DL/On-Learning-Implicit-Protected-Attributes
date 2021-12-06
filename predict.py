@@ -61,7 +61,7 @@ def predict(dataset, split_path, model_name, pretrain_model_path, output_dir,
   )
   if output_dir:
     results_groundtruth.to_csv(os.path.join(output_dir, tag+".csv"))
-  return predictions, test_df.iloc[:, 1:].values
+  return predictions, test_df.iloc[:, 1:].values, test_df.columns[1:].tolist()
 
 if __name__ == "__main__":
 
