@@ -16,7 +16,7 @@ def eval(dataset, split_path, model_name, pretrain_model_path, output_dir, multi
     for i, (prediction, ground_truth) in enumerate(zip(predictions.T, gt.T)):
       roc_auc_scores[labels[i]] = roc_auc_score(ground_truth, prediction)
       fpr, tpr, thresholds = roc_curve(ground_truth, prediction)
-      roc_auc_curves[labels[i]] = {"fpr": fpr.tolist(), "tpr": tpr.tolist(), "thresholds": thresholds}
+      roc_auc_curves[labels[i]] = {"fpr": fpr.tolist(), "tpr": tpr.tolist(), "thresholds": thresholds.tolist()}
     metrics["roc_auc_scores"] = roc_auc_scores
     metrics["roc_auc_curves"] = roc_auc_curves
     metrics["labels"] = labels
