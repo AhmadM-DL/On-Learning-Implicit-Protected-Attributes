@@ -19,11 +19,13 @@ def eval(dataset, split_path, model_name, pretrain_model_path, output_dir, multi
       roc_auc_curves[labels[i]] = {"fpr": fpr, "tpr": tpr, "thresholds": thresholds}
     metrics["roc_auc_scores"] = roc_auc_scores
     metrics["roc_auc_curves"] = roc_auc_curves
+    metrics["labels"] = labels
   else:
     predictions = [labels[p] for p in np.argmax(predictions, axis=1)]
     gt = [labels[g] for g in np.argmax(gt, axis=1)]
     metrics["accuracy_score"] = accuracy_score(predictions, gt)
     metrics["confusion_matrix"] = confusion_matrix(predictions, gt, normalize="true", labels=labels).tolist()
+    metrics["labels"] = labels
   if output_dir:
     json.dump(metrics, open(os.path.join(output_dir, "evaluation.json"), "w"))
   metrics
