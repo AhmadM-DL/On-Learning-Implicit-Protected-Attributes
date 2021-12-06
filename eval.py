@@ -23,7 +23,7 @@ def eval(dataset, split_path, model_name, pretrain_model_path, output_dir, multi
     predictions = [labels[p] for p in np.argmax(predictions, axis=1)]
     gt = [labels[g] for g in np.argmax(gt, axis=1)]
     metrics["accuracy_score"] = accuracy_score(predictions, gt)
-    metrics["confusion_matrix"] = confusion_matrix(predictions, gt, normalize="true", labels=labels)
+    metrics["confusion_matrix"] = confusion_matrix(predictions, gt, normalize="true", labels=labels).tolist()
   if output_dir:
     json.dump(metrics, open(os.path.join(output_dir, "evaluation.json"), "w"))
   metrics
