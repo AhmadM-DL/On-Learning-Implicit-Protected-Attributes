@@ -28,4 +28,4 @@ def eval(dataset, split_path, model_name, pretrain_model_path, output_dir, multi
     metrics["labels"] = labels
   if output_dir:
     json.dump(metrics, open(os.path.join(output_dir, "evaluation.json"), "w"))
-  metrics
+  return metrics
