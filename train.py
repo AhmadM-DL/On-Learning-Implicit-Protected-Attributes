@@ -57,7 +57,7 @@ class SaveEpoch(keras.callbacks.Callback):
 
 def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
           freeze, resume, output_dir, multi_label, batch_size= 32,
-          height=320, width=320, learning_rate= 1e-3, momentum_val=0.9, decay_val=0.0,
+          height=320, width=320, learning_rate= 1e-3, decay_val=0.0,
           rotation_range=15, fill_mode="constant", horizontal_flip= True,
           crop_to_aspect_ratio= True, zoom_range=0.1,
           class_mode= "raw", reduce_lr_on_plateau=True):
@@ -114,7 +114,7 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
       for layers in adjusted_model.layers[:freeze]:
         layers.trainable = False
     # Learning Configuration
-    adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate, decay=decay_val, momentum_val = momentum_val)
+    adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate, decay=decay_val)
     adam_opt = tf.keras.mixed_precision.LossScaleOptimizer(adam_opt)
     # Compile
     adjusted_model.compile(optimizer=adam_opt, loss='binary_crossentropy',
