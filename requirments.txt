@@ -4,3 +4,4 @@ tensorflow
 image-classifiers==1.0.0b1
 keras_applications
 sklearn
+matplotlib
