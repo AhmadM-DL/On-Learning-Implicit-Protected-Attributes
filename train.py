@@ -151,30 +151,37 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   train_epoch = math.ceil(len(train_df) / batch_size)
   val_epoch = math.ceil(len(validation_df) / batch_size)
   
-  # Setup Checkpoints
+  # Callbacks
   save_last_model = ModelCheckpoint(
     os.path.join(output_dir, "checkpoints", arc_name + ".hdf5"),
     verbose=1, save_weights_only=False, save_freq='epoch')
+
   save_best_model = ModelCheckpoint(
     os.path.join(output_dir, "checkpoints", arc_name + "_best.hdf5"),
     monitor="val_loss", mode="min", save_best_only= True, verbose=1,
     save_weights_only=False, save_freq='epoch')
-  save_last_epoch = SaveEpoch(output_dir, filename= "config.json")
-  log_dir = os.path.join(output_dir, "logs", )
+
+  save_last_epoch = SaveEpoch(output_dir, filename= 'config.json')
+
+  log_dir = os.path.join(output_dir, 'logs')
+  
   tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+  
   if reduce_lr_on_plateau:
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0.1, patience=2, min_lr=1e-5, verbose=1)
   else:
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0, patience=2, min_lr=1e-5, verbose=1)
+  
   if not os.path.exists(os.path.join(output_dir, "params")):
     os.mkdir(os.path.join(output_dir, "params"))
   arguments_file = open(os.path.join(output_dir, "params", "params.json"), "w")
-  json.dump(arguments_dict, arguments_file, indent=2) # TODO this shuld be uncommented in script
+  json.dump(arguments_dict, arguments_file)
+  
   # Train Model
   adjusted_model.fit(train_batches, validation_data=validate_batches,
             steps_per_epoch=int(train_epoch), validation_steps=int(val_epoch),
             epochs = 50, initial_epoch=start_epoch, workers=32, max_queue_size=50,
-            callbacks=[save_last_model, save_best_model, save_last_epoch, tensorboard_callback,reduce_lr]) 
+            callbacks=[save_last_model, save_best_model, save_last_epoch, tensorboard_callback, reduce_lr]) 
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='A module to train models')
