@@ -20,15 +20,15 @@ def plot_confusion_matrix(data, labels, title):
     return ax
 
 def data_split(seed, output_dir):
-    train_percent = 0.8
-    valid_percent= 0.1
-    test_percent = 0.1
-    root_dir='/Datasets/Chexpert/csv/'
-    output_filename = f"SingleImage_chexpert_split_{train_percent}_{valid_percent}_{test_percent}_{seed}.csv"
+    TRAIN_PERCENT = 0.8
+    VALID_PERCENT= 0.1
+    TEST_PERCENT = 0.1
+    ROOTDIR='/Datasets/Chexpert/csv/'
+    output_filename = f"chexpert_single_img_per_patient_{TRAIN_PERCENT}_{VALID_PERCENT}_{ROOTDIR}_{seed}.csv"
     
     #read data
-    data_df = pd.read_csv( os.path.join(root_dir, 'train.csv') )
-    demo_df = pd.DataFrame(pd.read_excel( os.path.join(root_dir, "demographics.xlsx"), engine='openpyxl'))
+    data_df = pd.read_csv( os.path.join(ROOTDIR, 'train.csv') )
+    demo_df = pd.DataFrame(pd.read_excel( os.path.join(ROOTDIR, "demographics.xlsx"), engine='openpyxl'))
     data_df["patient_id"] =  data_df.Path.str.split("/", expand = True)[2]
     demo_df = demo_df.rename(columns={'PATIENT': 'patient_id'})
     
@@ -54,12 +54,12 @@ def data_split(seed, output_dir):
     asian_df = combine_df[combine_df.race=="ASIAN"][:n_patients]
     black_df = combine_df[combine_df.race=="BLACK/AFRICAN AMERICAN"][:n_patients]
     white_df = combine_df[combine_df.race=="WHITE"][:n_patients]
-    asian_df=_split(asian_df,train_percent,valid_percent,test_percent)
-    white_df=_split(white_df,train_percent,valid_percent,test_percent)
-    black_df=_split(black_df,train_percent,valid_percent,test_percent)
+    asian_df=_split(asian_df, TRAIN_PERCENT, VALID_PERCENT, TEST_PERCENT)
+    white_df=_split(white_df, TRAIN_PERCENT, VALID_PERCENT, TEST_PERCENT)
+    black_df=_split(black_df, TRAIN_PERCENT, VALID_PERCENT, TEST_PERCENT)
     
     # Combine the splits
-    frames=[asian_df,black_df,white_df]
+    frames=[asian_df, black_df, white_df]
     all_df = pd.concat(frames)
     
     # Save only index and split columns
