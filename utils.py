@@ -34,16 +34,17 @@ def data_split(seed,output_dir):
     asian_df = combine_df[combine_df.race=="ASIAN"][:n_patients]
     black_df = combine_df[combine_df.race=="BLACK/AFRICAN AMERICAN"][:n_patients]
     white_df = combine_df[combine_df.race=="WHITE"][:n_patients]
-    _split(asian_df,train_percent,valid_percent,test_percent)
-    _split(white_df,train_percent,valid_percent,test_percent)
-    _split(black_df,train_percent,valid_percent,test_percent)
+    asian_df=_split(asian_df,train_percent,valid_percent,test_percent)
+    white_df=_split(white_df,train_percent,valid_percent,test_percent)
+    black_df=_split(black_df,train_percent,valid_percent,test_percent)
     #combine the splits
     frames=[asian_df,black_df,white_df]
     all_df = pd.concat(frames)
     #save only index and split columns
     split_df = all_df.reset_index()[["index", "split"]]
     split_df.to_csv(os.path.join(output_dir, output_filename), index= False)
-    
+    return split_df 
+
 def _split(df,train_percent,valid_percent,test_percent):
     # Use data of patients of black, white, and asian race and only frontal images
     # Split based on patient id
@@ -60,6 +61,7 @@ def _split(df,train_percent,valid_percent,test_percent):
     df.loc[df.patient_id.isin(train_sub_id), "split"]="train"
     df.loc[df.patient_id.isin(validate_sub_id), "split"]="validate"
     df.loc[df.patient_id.isin(test_sub_id), "split"]="test"
+    return df
 
 
 
