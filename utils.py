@@ -85,7 +85,16 @@ def _split(df,train_percent,valid_percent,test_percent):
     df.loc[df.patient_id.isin(test_sub_id), "split"]="test"
     return df
 
-def plot_aur_roc_curves():
-    return
+def plot_aur_roc_curves(auc_roc_dictionary, auc_roc_scores, title):
+    _, ax = plt.subplots(figsize=(10, 5))
+    for label, auc_roc in auc_roc_dictionary.items():
+        fpr = auc_roc["fpr"]
+        tpr = auc_roc["tpr"]
+        ax.plot(fpr, tpr, label=label+f"({auc_roc_scores[label]:0.2f})")
+    ax.set_xlabel("False Positive Rate")
+    ax.set_ylabel("True Positive Rate")
+    ax.set_title(title)
+    ax.legend(loc=(1.02, 0))
+    return ax
 
 
