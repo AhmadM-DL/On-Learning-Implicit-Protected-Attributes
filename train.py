@@ -63,7 +63,7 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
           class_mode= "raw", reduce_lr_on_plateau=True):
 
   # save arguments
-  arguments_dict = locals()
+  arguments_dict = locals().copy()
 
   set_seed(seed)
 
