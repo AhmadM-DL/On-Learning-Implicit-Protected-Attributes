@@ -112,6 +112,7 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
 
   arguments_file = open(os.path.join(output_dir, "params.json"), "w")
   json.dump(arguments_dict, arguments_file)
+  time.sleep(2)
 
   set_seed(seed)
 
