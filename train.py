@@ -146,8 +146,10 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
 
   # Preparing Datasets
   train_df, validation_df, test_df = prepare_split_dataset(dataset_path, split_file)
+  # TODO remove in production
+  # train_df = train_df.iloc[:100, :]
+  # validation_df = validation_df.iloc[:100, :]
 
-  #TODO
   arc_name = f"{tag}_{height}x{width}_{get_split_percent_as_str(train_df, validation_df, test_df)}_{model_name}"
 
   # Load model
