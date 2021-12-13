@@ -72,6 +72,16 @@ class SaveBestEpoch(keras.callbacks.Callback):
         json.dump({"epoch": epoch, "val_loss": logs["val_loss"]},
         open(os.path.join(self.output_dir, self.filename), "w"))
 
+class LRTensorBoard(tf.keras.callbacks.TensorBoard):
+    # add other arguments to __init__ if you need
+    def __init__(self, log_dir, **kwargs):
+        super().__init__(log_dir=log_dir, **kwargs)
+
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+        logs.update({'lr': tf.keras.backend.eval(self.model.optimizer.lr)})
+        super().on_epoch_end(epoch, logs)
+
 
 def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
           freeze, resume, output_dir, multi_label, batch_size= 32,
@@ -214,12 +224,12 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
 
   log_dir = os.path.join(output_dir, 'logs', datetime.now().strftime("%Y%m%d-%H%M%S"))
   
-  tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+  tensorboard_callback = LRTensorBoard(log_dir=log_dir, histogram_freq=1)
   
   if reduce_lr_on_plateau:
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0.1, patience=2, min_lr=1e-5, verbose=1)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0.1, patience=2, min_lr=1e-5, verbose= verbose)
   else:
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0, patience=2, min_lr=1e-5, verbose=1)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0, patience=2, min_lr=1e-5, verbose= verbose)
   
   # Train Model
   adjusted_model.fit(train_batches, validation_data=validate_batches,
