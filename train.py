@@ -73,7 +73,7 @@ class MyCallback(keras.callbacks.Callback):
       if logs["val_loss"] < self.lastInfo["best_val_loss"]:
         self.lastInfo["best_val_loss"] = logs["val_loss"]
         self.lastInfo["best_epoch"] = epoch
-        self.model.save(open(os.path.join(self.output_dir, CHECKPOINTS_DIR, self.checkpoint_filename)))
+        self.model.save(os.path.join(self.output_dir, CHECKPOINTS_DIR, self.checkpoint_filename))
 
       self.lastInfo["last_epoch"] = epoch
       json.dump(self.lastInfo, open(os.path.join(self.output_dir, self.resume_filename), "w"))
