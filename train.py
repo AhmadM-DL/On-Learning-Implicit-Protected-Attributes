@@ -59,7 +59,7 @@ class SaveInfoForResume(keras.callbacks.Callback):
       if os.path.isfile(filename):
         self.lastInfo = json.load( open(filename, "r"))
       else:
-        self.lastInfo = {"last_epoch":0, "best_epoch":0, "best_val_loss":-math.inf}
+        self.lastInfo = {"last_epoch": None, "best_epoch": None, "best_val_loss": math.inf}
 
     def on_epoch_end(self, epoch, logs=None):
       if self.verbose:
