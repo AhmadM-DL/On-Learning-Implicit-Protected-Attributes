@@ -127,7 +127,7 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   train_df, validation_df, test_df = prepare_split_dataset(dataset_path, split_file)
 
   #TODO
-  arc_name = f"{tag}_{height}x{width}_{get_split_percent_as_str(train_df, validation_df, test_df)}{model_name}"
+  arc_name = f"{tag}_{height}x{width}_{get_split_percent_as_str(train_df, validation_df, test_df)}_{model_name}"
 
   # Load model
   model, preprocess_input = Classifiers.get(model_name)
@@ -137,8 +137,8 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
 
   # Resume
   start_epoch = 0
-  if resume and os.path.exists(os.path.join(output_dir, "config.json")):
-      start_epoch = json.load(open(os.path.join(output_dir, "config.json")))["epoch"]
+  if resume and os.path.exists(os.path.join(output_dir, "last_epoch.json")):
+      start_epoch = json.load(open(os.path.join(output_dir, "last_epoch.json")))["epoch"]
       adjusted_model = load_model(os.path.join(output_dir, "checkpoints", arc_name + ".hdf5"))
       print(f"Resuming from epoch {start_epoch}")
   else:
