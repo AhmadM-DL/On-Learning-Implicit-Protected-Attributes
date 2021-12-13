@@ -12,6 +12,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from classification_models.tfkeras import Classifiers
 from tensorflow.keras.models import load_model
 import keras
+from tensorflow.python.training.tracking.util import Checkpoint
 
 CHECKPOINTS_DIR = "checkpoints"
 
@@ -76,7 +77,10 @@ class MyCallback(keras.callbacks.Callback):
         self.model.save(os.path.join(self.output_dir, CHECKPOINTS_DIR, self.checkpoint_filename))
 
       self.lastInfo["last_epoch"] = epoch
-      json.dump(self.lastInfo, open(os.path.join(self.output_dir, self.resume_filename), "w"))
+      resume_file =  open(os.path.join(self.output_dir, self.resume_filename), "w")
+      json.dump(self.lastInfo, resume_file)
+      resume_file.close()
+
 
 class LRTensorBoard(tf.keras.callbacks.TensorBoard):
     # add other arguments to __init__ if you need
