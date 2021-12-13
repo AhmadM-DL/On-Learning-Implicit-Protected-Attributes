@@ -106,6 +106,11 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
     "reduce_lr_on_plateau": reduce_lr_on_plateau
   }
 
+  if not os.path.exists(os.path.join(output_dir, "params")):
+    os.mkdir(os.path.join(output_dir, "params"))
+  arguments_file = open(os.path.join(output_dir, "params", "params.json"), "w")
+  json.dump(arguments_dict, arguments_file)
+
   set_seed(seed)
 
   if multi_label:
@@ -214,11 +219,6 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0.1, patience=2, min_lr=1e-5, verbose=1)
   else:
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0, patience=2, min_lr=1e-5, verbose=1)
-  
-  if not os.path.exists(os.path.join(output_dir, "params")):
-    os.mkdir(os.path.join(output_dir, "params"))
-  arguments_file = open(os.path.join(output_dir, "params", "params.json"), "w")
-  json.dump(arguments_dict, arguments_file)
   
   # Train Model
   adjusted_model.fit(train_batches, validation_data=validate_batches,
