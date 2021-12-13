@@ -24,7 +24,7 @@ def data_split(seed, output_dir):
     VALID_PERCENT= 0.1
     TEST_PERCENT = 0.1
     ROOTDIR='./Datasets/Chexpert/csv/'
-    output_filename = f"chexpert_single_img_per_patient_{TRAIN_PERCENT}_{VALID_PERCENT}_{ROOTDIR}_{seed}.csv"
+    output_filename = f"chexpert_single_img_per_patient_{TRAIN_PERCENT}_{VALID_PERCENT}_{TEST_PERCENT}_{seed}.csv"
     
     #read data
     data_df = pd.read_csv( os.path.join(ROOTDIR, 'train.csv') )
