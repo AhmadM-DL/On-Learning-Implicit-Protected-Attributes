@@ -63,7 +63,31 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
           class_mode= "raw", reduce_lr_on_plateau=True):
 
   # save arguments
-  arguments_dict = locals().copy()
+  arguments_dict = {
+    "dataset": dataset,
+    "split_file": split_file, 
+    "tag": tag,
+    "model_name": model_name,
+    "seed": seed,
+    "weights": weights,
+    "n_labels": n_labels,
+    "freeze": freeze,
+    "resume": resume,
+    "output_dir": output_dir,
+    "multi_label": multi_label,
+    "batch_size": batch_size,
+    "height": height,
+    "width": width,
+    "learning_rate": learning_rate,
+    "decay_val": decay_val,
+    "rotation_range": rotation_range,
+    "fill_mode": fill_mode,
+    "horizontal_flip": horizontal_flip,
+    "crop_to_aspect_ratio": crop_to_aspect_ratio,
+    "zoom_range": zoom_range,
+    "class_mode": class_mode,
+    "reduce_lr_on_plateau": reduce_lr_on_plateau
+  }
 
   set_seed(seed)
 
