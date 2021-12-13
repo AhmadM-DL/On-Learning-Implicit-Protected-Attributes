@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import random, math, argparse, os
 import json
-import datetime
+from datetime import datetime
 
 import tensorflow as tf
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
