@@ -14,6 +14,8 @@ from classification_models.tfkeras import Classifiers
 from tensorflow.keras.models import load_model
 import keras
 
+CHECKPOINTS_DIR = "checkpoints"
+
 def set_seed(seed):
   np.random.seed(seed)
   random.seed(seed)
@@ -49,15 +51,16 @@ def prepare_split_dataset(dataset_path, split_path):
 
   return train_df, validation_df, test_df
 
-class SaveInfoForResume(keras.callbacks.Callback):
+class MyCallback(keras.callbacks.Callback):
 
-    def __init__(self, output_dir, filename="resume_info.json", verbose=0):
+    def __init__(self, output_dir, checkpoint_filename, resume_filename="resume_info.json", verbose=0):
       self.output_dir = output_dir
-      self.filename= filename
+      self.resume_filename= resume_filename
+      self.checkpoint_filename = checkpoint_filename
       self.verbose = verbose
 
-      if os.path.isfile(filename):
-        self.lastInfo = json.load( open(filename, "r"))
+      if os.path.isfile(os.path.join(self.output_dir, self.resume_filename)):
+        self.lastInfo = json.load( open(os.path.join(self.output_dir, self.resume_filename), "r"))
       else:
         self.lastInfo = {"last_epoch": None, "best_epoch": None, "best_val_loss": math.inf}
 
@@ -68,9 +71,10 @@ class SaveInfoForResume(keras.callbacks.Callback):
       if logs["val_loss"] < self.lastInfo["best_val_loss"]:
         self.lastInfo["best_val_loss"] = logs["val_loss"]
         self.lastInfo["best_epoch"] = epoch
+        self.model.save(open(os.path.join(self.output_dir, CHECKPOINTS_DIR, self.checkpoint_filename)))
 
       self.lastInfo["last_epoch"] = epoch
-      json.dump(self.lastInfo, open(os.path.join(self.output_dir, self.filename), "w"))
+      json.dump(self.lastInfo, open(os.path.join(self.output_dir, self.resume_filename), "w"))
 
 class LRTensorBoard(tf.keras.callbacks.TensorBoard):
     # add other arguments to __init__ if you need
@@ -156,7 +160,7 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   start_epoch = 0
   if resume and os.path.isfile(os.path.join(output_dir, "resume_info.json")):
       start_epoch = json.load(open(os.path.join(output_dir, "resume_info.json")))["last_epoch"]
-      adjusted_model = load_model(os.path.join(output_dir, "checkpoints", arc_name + ".hdf5"))
+      adjusted_model = load_model(os.path.join(output_dir, CHECKPOINTS_DIR, arc_name + ".hdf5"))
       print(f"Resuming from epoch {start_epoch}")
   else:
     # Load and Set model
@@ -210,15 +214,11 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   
   # Callbacks
   save_last_model = ModelCheckpoint(
-    os.path.join(output_dir, "checkpoints", arc_name + ".hdf5"),
+    os.path.join(output_dir, CHECKPOINTS_DIR, arc_name + ".hdf5"),
     verbose=1, save_weights_only=False, save_freq='epoch')
-
-  save_info_for_resume = SaveInfoForResume(output_dir)
-
+  custome_callback = MyCallback(output_dir, checkpoint_filename= arc_name + "_best.hdf5")
   log_dir = os.path.join(output_dir, 'logs', datetime.now().strftime("%Y%m%d-%H%M%S"))
-  
   tensorboard_callback = LRTensorBoard(log_dir=log_dir, histogram_freq=1)
-  
   if reduce_lr_on_plateau:
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0.1, patience=2, min_lr=1e-5, verbose= verbose)
   else:
@@ -228,7 +228,7 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   adjusted_model.fit(train_batches, validation_data=validate_batches,
             steps_per_epoch=int(train_epoch), validation_steps=int(val_epoch),
             epochs = 50, initial_epoch=start_epoch, workers=32, max_queue_size=50,
-            callbacks=[save_last_model, save_info_for_resume,
+            callbacks=[save_last_model, custome_callback,
                        tensorboard_callback, reduce_lr]) 
 
 if __name__ == "__main__":
