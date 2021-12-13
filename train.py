@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
-import random, math, argparse, os
-import json
+import random, math, argparse, os, json, time
 from datetime import datetime
 
 import tensorflow as tf
@@ -64,6 +63,9 @@ class MyCallback(keras.callbacks.Callback):
       else:
         self.lastInfo = {"last_epoch": None, "best_epoch": None, "best_val_loss": math.inf}
 
+      if not os.path.isdir(os.path.join(self.output_dir, CHECKPOINTS_DIR)):
+        os.mkdir(os.path.join(self.output_dir, CHECKPOINTS_DIR))
+
     def on_epoch_end(self, epoch, logs=None):
       if self.verbose:
         print(f"SaveInfoForResume epoch ({epoch}) : loss ({logs['val_loss']}) : is best {logs['val_loss'] < self.best_valid_loss}")
@@ -96,34 +98,19 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
 
   # save arguments
   arguments_dict = {
-    "dataset": dataset,
-    "split_file": split_file, 
-    "tag": tag,
-    "model_name": model_name,
-    "seed": seed,
-    "weights": weights,
-    "n_labels": n_labels,
-    "freeze": freeze,
-    "resume": resume,
-    "output_dir": output_dir,
-    "multi_label": multi_label,
-    "batch_size": batch_size,
-    "height": height,
-    "width": width,
-    "learning_rate": learning_rate,
-    "decay_val": decay_val,
-    "rotation_range": rotation_range,
-    "fill_mode": fill_mode,
-    "horizontal_flip": horizontal_flip,
-    "crop_to_aspect_ratio": crop_to_aspect_ratio,
-    "zoom_range": zoom_range,
-    "class_mode": class_mode,
+    "dataset": dataset, "split_file": split_file, "tag": tag,
+    "model_name": model_name, "seed": seed, "weights": weights,
+    "n_labels": n_labels, "freeze": freeze, "resume": resume,
+    "output_dir": output_dir, "multi_label": multi_label,
+    "batch_size": batch_size, "height": height, "width": width,
+    "learning_rate": learning_rate, "decay_val": decay_val,
+    "rotation_range": rotation_range, "fill_mode": fill_mode,
+    "horizontal_flip": horizontal_flip, "crop_to_aspect_ratio": crop_to_aspect_ratio,
+    "zoom_range": zoom_range, "class_mode": class_mode,
     "reduce_lr_on_plateau": reduce_lr_on_plateau
   }
 
-  if not os.path.exists(os.path.join(output_dir, "params")):
-    os.mkdir(os.path.join(output_dir, "params"))
-  arguments_file = open(os.path.join(output_dir, "params", "params.json"), "w")
+  arguments_file = open(os.path.join(output_dir, "params.json"), "w")
   json.dump(arguments_dict, arguments_file)
 
   set_seed(seed)
