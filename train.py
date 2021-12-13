@@ -65,8 +65,8 @@ class SaveBestEpoch(keras.callbacks.Callback):
       self.verbose = verbose
     def on_epoch_end(self, epoch, logs=None):
       if self.verbose:
-        print(f"epoch ({epoch}) : loss ({logs['val_loss']}) : is best {logs['val_loss'] > self.best_valid_loss}")
-      if logs["val_loss"] > self.best_valid_loss:
+        print(f"epoch ({epoch}) : loss ({logs['val_loss']}) : is best {logs['val_loss'] < self.best_valid_loss}")
+      if logs["val_loss"] < self.best_valid_loss:
         self.best_valid_loss = logs["val_loss"]
         self.best_epoch = epoch
         json.dump({"epoch": epoch, "val_loss": logs["val_loss"]},
