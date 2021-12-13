@@ -48,19 +48,35 @@ def prepare_split_dataset(dataset_path, split_path):
 
   return train_df, validation_df, test_df
 
-class SaveEpoch(keras.callbacks.Callback):
-    def __init__(self, output_dir, filename="config.json"):
+class SaveLastEpoch(keras.callbacks.Callback):
+    def __init__(self, output_dir, filename="last_epoch.json", verbose=0):
       self.output_dir = output_dir
       self.filename= filename
     def on_epoch_end(self, epoch, logs=None):
       json.dump({"epoch": epoch}, open(os.path.join(self.output_dir, self.filename), "w"))
+
+class SaveBestEpoch(keras.callbacks.Callback):
+    def __init__(self, output_dir, filename="best_epoch.json", verbose=0):
+      self.output_dir = output_dir
+      self.filename= filename
+      self.best_valid_loss = -math.inf
+      self.best_epoch = 0
+      self.verbose = verbose
+    def on_epoch_end(self, epoch, logs=None):
+      if logs["val_loss"] > self.best_valid_loss:
+        self.best_valid_loss = logs["val_loss"]
+        self.best_epoch = epoch
+        json.dump({"epoch": epoch, "val_loss": logs["val_loss"]},
+        open(os.path.join(self.output_dir, self.filename), "w"))
+      if self.verbose:
+        print(f"epoch ({epoch}) : loss ({logs['val_loss']}) : is best {logs['val_loss'] > self.best_valid_loss}")
 
 def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
           freeze, resume, output_dir, multi_label, batch_size= 32,
           height=320, width=320, learning_rate= 1e-3, decay_val=0.0,
           rotation_range=15, fill_mode="constant", horizontal_flip= True,
           crop_to_aspect_ratio= True, zoom_range=0.1,
-          class_mode= "raw", reduce_lr_on_plateau=True):
+          class_mode= "raw", reduce_lr_on_plateau=True, verbose=0):
 
   # save arguments
   arguments_dict = {
@@ -185,7 +201,9 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
     monitor="val_loss", mode="min", save_best_only= True, verbose=1,
     save_weights_only=False, save_freq='epoch')
 
-  save_last_epoch = SaveEpoch(output_dir, filename= 'config.json')
+  save_last_epoch = SaveLastEpoch(output_dir, filename= 'last_epoch.json')
+
+  save_best_epoch = SaveBestEpoch(output_dir, filename= 'best_epoch.json', verbose=verbose)
 
   log_dir = os.path.join(output_dir, 'logs')
   
@@ -205,7 +223,9 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   adjusted_model.fit(train_batches, validation_data=validate_batches,
             steps_per_epoch=int(train_epoch), validation_steps=int(val_epoch),
             epochs = 50, initial_epoch=start_epoch, workers=32, max_queue_size=50,
-            callbacks=[save_last_model, save_best_model, save_last_epoch, tensorboard_callback, reduce_lr]) 
+            callbacks=[save_last_model, save_best_model,
+                       save_last_epoch, save_best_epoch,
+                       tensorboard_callback, reduce_lr]) 
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='A module to train models')
