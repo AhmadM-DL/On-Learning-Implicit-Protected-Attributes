@@ -49,28 +49,28 @@ def prepare_split_dataset(dataset_path, split_path):
 
   return train_df, validation_df, test_df
 
-class SaveLastEpoch(keras.callbacks.Callback):
-    def __init__(self, output_dir, filename="last_epoch.json", verbose=0):
-      self.output_dir = output_dir
-      self.filename= filename
-    def on_epoch_end(self, epoch, logs=None):
-      json.dump({"epoch": epoch}, open(os.path.join(self.output_dir, self.filename), "w"))
+class SaveInfoForResume(keras.callbacks.Callback):
 
-class SaveBestEpoch(keras.callbacks.Callback):
-    def __init__(self, output_dir, filename="best_epoch.json", verbose=0):
+    def __init__(self, output_dir, filename="resume_info.json", verbose=0):
       self.output_dir = output_dir
       self.filename= filename
-      self.best_valid_loss = -math.inf
-      self.best_epoch = 0
       self.verbose = verbose
+
+      if os.path.isfile(filename):
+        self.lastInfo = json.load( open(filename, "r"))
+      else:
+        self.lastInfo = {"last_epoch":0, "best_epoch":0, "best_val_loss":-math.inf}
+
     def on_epoch_end(self, epoch, logs=None):
       if self.verbose:
-        print(f"epoch ({epoch}) : loss ({logs['val_loss']}) : is best {logs['val_loss'] < self.best_valid_loss}")
-      if logs["val_loss"] < self.best_valid_loss:
-        self.best_valid_loss = logs["val_loss"]
-        self.best_epoch = epoch
-        json.dump({"epoch": epoch, "val_loss": logs["val_loss"]},
-        open(os.path.join(self.output_dir, self.filename), "w"))
+        print(f"SaveInfoForResume epoch ({epoch}) : loss ({logs['val_loss']}) : is best {logs['val_loss'] < self.best_valid_loss}")
+      
+      if logs["val_loss"] < self.lastInfo["best_val_loss"]:
+        self.lastInfo["best_val_loss"] = logs["val_loss"]
+        self.lastInfo["best_epoch"] = epoch
+
+      self.lastInfo["last_epoch"] = epoch
+      json.dump(self.lastInfo, open(os.path.join(self.output_dir, self.filename), "w"))
 
 class LRTensorBoard(tf.keras.callbacks.TensorBoard):
     # add other arguments to __init__ if you need
@@ -154,8 +154,8 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
 
   # Resume
   start_epoch = 0
-  if resume and os.path.exists(os.path.join(output_dir, "last_epoch.json")):
-      start_epoch = json.load(open(os.path.join(output_dir, "last_epoch.json")))["epoch"]
+  if resume and os.path.isfile(os.path.join(output_dir, "resume_info.json")):
+      start_epoch = json.load(open(os.path.join(output_dir, "resume_info.json")))["last_epoch"]
       adjusted_model = load_model(os.path.join(output_dir, "checkpoints", arc_name + ".hdf5"))
       print(f"Resuming from epoch {start_epoch}")
   else:
@@ -213,14 +213,7 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
     os.path.join(output_dir, "checkpoints", arc_name + ".hdf5"),
     verbose=1, save_weights_only=False, save_freq='epoch')
 
-  save_best_model = ModelCheckpoint(
-    os.path.join(output_dir, "checkpoints", arc_name + "_best.hdf5"),
-    monitor="val_loss", mode="min", save_best_only= True, verbose=1,
-    save_weights_only=False, save_freq='epoch')
-
-  save_last_epoch = SaveLastEpoch(output_dir, filename= 'last_epoch.json')
-
-  save_best_epoch = SaveBestEpoch(output_dir, filename= 'best_epoch.json', verbose=verbose)
+  save_info_for_resume = SaveInfoForResume(output_dir)
 
   log_dir = os.path.join(output_dir, 'logs', datetime.now().strftime("%Y%m%d-%H%M%S"))
   
@@ -235,8 +228,7 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   adjusted_model.fit(train_batches, validation_data=validate_batches,
             steps_per_epoch=int(train_epoch), validation_steps=int(val_epoch),
             epochs = 50, initial_epoch=start_epoch, workers=32, max_queue_size=50,
-            callbacks=[save_last_model, save_best_model,
-                       save_last_epoch, save_best_epoch,
+            callbacks=[save_last_model, save_info_for_resume,
                        tensorboard_callback, reduce_lr]) 
 
 if __name__ == "__main__":
