@@ -23,7 +23,7 @@ def data_split(seed, output_dir):
     TRAIN_PERCENT = 0.8
     VALID_PERCENT= 0.1
     TEST_PERCENT = 0.1
-    ROOTDIR='/Datasets/Chexpert/csv/'
+    ROOTDIR='./Datasets/Chexpert/csv/'
     output_filename = f"chexpert_single_img_per_patient_{TRAIN_PERCENT}_{VALID_PERCENT}_{ROOTDIR}_{seed}.csv"
     
     #read data
@@ -67,13 +67,13 @@ def data_split(seed, output_dir):
     split_df.to_csv(os.path.join(output_dir, output_filename), index= False)
     return split_df 
 
-def _split(df,train_percent,valid_percent,test_percent):
+def _split(df, train_ratio, valid_ratio, test_ratio):
     # Use data of patients of black, white, and asian race and only frontal images
     # Split based on patient id
     unique_sub_id = df.patient_id.unique()
-    value1 = (round(len(unique_sub_id)*(train_percent*100)))
-    value2 = (round(len(unique_sub_id)*(valid_percent*100)))
-    value3 = (round(len(unique_sub_id)*(test_percent*100)))
+    value1 = (round(len(unique_sub_id)*(train_ratio)))
+    value2 = (round(len(unique_sub_id)*(valid_ratio)))
+    value3 = (round(len(unique_sub_id)*(test_ratio)))
 
     train_sub_id = unique_sub_id[:value1]
     validate_sub_id = unique_sub_id[value1:value1+value2]
