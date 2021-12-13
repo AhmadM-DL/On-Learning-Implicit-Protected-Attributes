@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import random, math, argparse, os
 import json
+import datetime
 
 import tensorflow as tf
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
@@ -211,7 +212,7 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
 
   save_best_epoch = SaveBestEpoch(output_dir, filename= 'best_epoch.json', verbose=verbose)
 
-  log_dir = os.path.join(output_dir, 'logs')
+  log_dir = os.path.join(output_dir, 'logs', datetime.now().strftime("%Y%m%d-%H%M%S"))
   
   tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
   
