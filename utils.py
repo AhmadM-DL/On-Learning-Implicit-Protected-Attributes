@@ -19,6 +19,60 @@ def plot_confusion_matrix(data, labels, title):
     ax.set_title(title, position=(0.5, 1.2))
     return ax
 
+def data_split(seed, output_dir, keep_images):
+    TRAIN_PERCENT = 0.8
+    VALID_PERCENT= 0.1
+    TEST_PERCENT = 0.1
+    ROOTDIR='./Datasets/Chexpert/csv/'
+    output_filename = f"chexpert_single_img_per_patient_{TRAIN_PERCENT}_{VALID_PERCENT}_{TEST_PERCENT}_{seed}.csv"
+
+    # Read data
+    data_df = pd.read_csv( os.path.join(ROOTDIR, 'train.csv') )
+    demo_df = pd.DataFrame(pd.read_excel( os.path.join(ROOTDIR, "demographics.xlsx"), engine='openpyxl'))
+    data_df["patient_id"] =  data_df.Path.str.split("/", expand = True)[2]
+    demo_df = demo_df.rename(columns={'PATIENT': 'patient_id'})
+
+    # Combine demographics and train data 
+    combine_df = data_df.merge(demo_df, on="patient_id", how="left")
+
+    # Remove hispanic and latino and take only Frontal images
+    combine_df.insert(3, "race", "")
+    combine_df.loc[(combine_df.PRIMARY_RACE.str.contains("Black", na=False)), "race"] = "BLACK/AFRICAN AMERICAN"
+    combine_df.loc[(combine_df.PRIMARY_RACE.str.contains("White", na=False)), "race"] = "WHITE"
+    combine_df.loc[(combine_df.PRIMARY_RACE.str.contains("Asian", na=False)), "race"] = "ASIAN"
+    combine_df = combine_df[combine_df.race.isin(['ASIAN','BLACK/AFRICAN AMERICAN','WHITE'])]
+    combine_df = combine_df[combine_df.ETHNICITY.isin(["Non-Hispanic/Non-Latino","Not Hispanic"])]
+    combine_df = combine_df[combine_df["Frontal/Lateral"]=="Frontal"]
+
+    # Get number of images of each patient id
+    combine_df["n_images_per_patient"] = combine_df.groupby("patient_id")["Path"].transform(len)
+
+    # Keep Patients with n_images >= keep_images
+    combine_df = combine_df[ combine_df["n_images_per_patient"] >= keep_images]
+
+    # Keep keep_images per patient id 
+    combine_df = combine_df.groupby("patient_id").head(keep_images)
+
+    # Return the min value of patients per race
+    n_patients = combine_df.race.value_counts().min()
+
+    combine_df = shuffle(combine_df, random_state=seed)
+    asian_df = combine_df[combine_df.race=="ASIAN"][:n_patients]
+    black_df = combine_df[combine_df.race=="BLACK/AFRICAN AMERICAN"][:n_patients]
+    white_df = combine_df[combine_df.race=="WHITE"][:n_patients]
+    asian_df=_split(asian_df, TRAIN_PERCENT, VALID_PERCENT, TEST_PERCENT)
+    white_df=_split(white_df, TRAIN_PERCENT, VALID_PERCENT, TEST_PERCENT)
+    black_df=_split(black_df, TRAIN_PERCENT, VALID_PERCENT, TEST_PERCENT)
+
+    # Combine the splits
+    frames=[asian_df, black_df, white_df]
+    all_df = pd.concat(frames)
+
+    # Save only index and split columns
+    split_df = all_df.reset_index()[["index", "split"]]
+    split_df.to_csv(os.path.join(output_dir, output_filename), index= False)    
+    return split_df
+
 def data_split(seed, output_dir):
     TRAIN_PERCENT = 0.8
     VALID_PERCENT= 0.1
