@@ -55,12 +55,9 @@ def validate_split(split_filename, check_stratified_on_race=False):
     assert len(test_df.race.value_counts().unique()) == 1
     assert len(validation_df.race.value_counts().unique()) == 1
 
-def race_balanced_split(seed, output_dir, max_images_per_patient):
-    TRAIN_PERCENT = 0.8
-    VALID_PERCENT= 0.1
-    TEST_PERCENT = 0.1
+def race_balanced_split(seed, output_dir, max_images_per_patient, splits_ratio = (.8, .1, .1)):
     ROOTDIR='./Datasets/Chexpert/csv/'
-    output_filename = f"chexpert_single_img_per_patient_{TRAIN_PERCENT}_{VALID_PERCENT}_{TEST_PERCENT}_{seed}_{max_images_per_patient}.csv"
+    output_filename = f"chexpert_single_img_per_patient_{splits_ratio[0]}_{splits_ratio[1]}_{splits_ratio[2]}_{seed}_{max_images_per_patient}.csv"
 
     # Read data
     data_df = pd.read_csv( os.path.join(ROOTDIR, 'train.csv') )
@@ -90,9 +87,9 @@ def race_balanced_split(seed, output_dir, max_images_per_patient):
     asian_df = combine_df[combine_df.race=="ASIAN"][:min_imgs_per_race]
     black_df = combine_df[combine_df.race=="BLACK/AFRICAN AMERICAN"][:min_imgs_per_race]
     white_df = combine_df[combine_df.race=="WHITE"][:min_imgs_per_race]
-    asian_df=_split(asian_df, TRAIN_PERCENT, VALID_PERCENT, TEST_PERCENT)
-    white_df=_split(white_df, TRAIN_PERCENT, VALID_PERCENT, TEST_PERCENT)
-    black_df=_split(black_df, TRAIN_PERCENT, VALID_PERCENT, TEST_PERCENT)
+    asian_df=_split(asian_df, splits_ratio[0], splits_ratio[1], splits_ratio[2])
+    white_df=_split(white_df, splits_ratio[0], splits_ratio[1], splits_ratio[2])
+    black_df=_split(black_df, splits_ratio[0], splits_ratio[1], splits_ratio[2])
 
     # Combine the splits
     frames=[asian_df, black_df, white_df]
