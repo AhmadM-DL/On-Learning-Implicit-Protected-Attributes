@@ -57,7 +57,7 @@ def validate_split(split_filename, check_stratified_on_race=False):
 
 def race_balanced_split(seed, output_dir, max_images_per_patient, splits_ratio = (.8, .1, .1)):
     ROOTDIR='./Datasets/Chexpert/csv/'
-    output_filename = f"chexpert_single_img_per_patient_{splits_ratio[0]}_{splits_ratio[1]}_{splits_ratio[2]}_{seed}_{max_images_per_patient}.csv"
+    output_filename = f"chexpert_{splits_ratio[0]}_{splits_ratio[1]}_{splits_ratio[2]}_{seed}_{max_images_per_patient}.csv"
 
     # Read data
     data_df = pd.read_csv( os.path.join(ROOTDIR, 'train.csv') )
