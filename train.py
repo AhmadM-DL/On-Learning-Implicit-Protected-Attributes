@@ -214,9 +214,9 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   log_dir = os.path.join(output_dir, 'logs', datetime.now().strftime("%Y%m%d-%H%M%S"))
   tensorboard_callback = LRTensorBoard(log_dir=log_dir, histogram_freq=1)
   if reduce_lr_on_plateau:
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0.1, patience=2, min_lr=1e-5, verbose= verbose)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0.1, patience=2, min_lr=1e-5, verbose=verbose)
   else:
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0, patience=2, min_lr=1e-5, verbose= verbose)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0, patience=2, min_lr=1e-5, verbose=verbose)
   
   # Train Model
   adjusted_model.fit(train_batches, validation_data=validate_batches,
