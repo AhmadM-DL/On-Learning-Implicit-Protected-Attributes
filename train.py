@@ -94,7 +94,7 @@ class LRTensorBoard(tf.keras.callbacks.TensorBoard):
 
 
 def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
-          freeze, resume, output_dir, multi_label, batch_size= 32,
+          freeze, resume, output_dir, multi_label, n_epochs, batch_size= 32,
           height=320, width=320, learning_rate= 1e-3, decay_val=0.0,
           rotation_range=15, fill_mode="constant", horizontal_flip= True,
           crop_to_aspect_ratio= True, zoom_range=0.1,
@@ -111,7 +111,8 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
     "rotation_range": rotation_range, "fill_mode": fill_mode,
     "horizontal_flip": horizontal_flip, "crop_to_aspect_ratio": crop_to_aspect_ratio,
     "zoom_range": zoom_range, "class_mode": class_mode,
-    "reduce_lr_on_plateau": reduce_lr_on_plateau
+    "reduce_lr_on_plateau": reduce_lr_on_plateau,
+    "n_epochs" : n_epochs,
   }
 
   arguments_file = open(os.path.join(output_dir, "params.json"), "w")
@@ -221,7 +222,7 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   # Train Model
   adjusted_model.fit(train_batches, validation_data=validate_batches,
             steps_per_epoch=int(train_epoch), validation_steps=int(val_epoch),
-            epochs = 50, initial_epoch=start_epoch, workers=32, max_queue_size=50,
+            epochs = n_epochs, initial_epoch=start_epoch, workers=32, max_queue_size=50,
             callbacks=[save_last_model, custome_callback,
                        tensorboard_callback, reduce_lr]) 
 
@@ -246,6 +247,7 @@ if __name__ == "__main__":
   parser.add_argument('--momentum_val', type=float, default=0.9)
   parser.add_argument('--decay_val', type=float, default=0.0)
   parser.add_argument('--batch_size', type=int, default= 32)
+  parser.add_argument('--n_epochs', type=int, default= 50)
 
   # Transformations
   parser.add_argument('--rotation_range', type=int, default=15)
@@ -257,7 +259,7 @@ if __name__ == "__main__":
   parser.add_argument('--class_mode', default="raw", choices = ["categorical", "raw"])
   parser.add_argument('--freeze')
   parser.add_argument('--resume', choices = ["True", "False"])
-  parser.add_argument('--reduce_lr_on_plateau',default='True', choices = ["True", "False"])
+  parser.add_argument('--reduce_lr_on_plateau', default='True', choices = ["True", "False"])
 
   args = parser.parse_args()
   
@@ -276,7 +278,8 @@ if __name__ == "__main__":
   train(args.dataset, args.split_path, args.tag, 
         args.model_name, args.seed, args.weights,
         args.n_labels, args.freeze, args.resume,
-        args.output_dir, args.multi_label,args.reduce_lr_on_plateau, batch_size= args.batch_size,
+        args.output_dir, args.multi_label,args.reduce_lr_on_plateau,
+        n_epochs = args.n_epochs, batch_size= args.batch_size,
         height = args.height, width = args.width, learning_rate= args.learning_rate,
         momentum_val=args.momentum_val, decay_val=args.decay_val,
         rotation_range= args.rotation_range, fill_mode= args.fill_mode,
