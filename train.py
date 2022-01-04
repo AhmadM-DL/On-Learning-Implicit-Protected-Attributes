@@ -165,10 +165,6 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
     x = Dense(n_labels, name='dense_logits')(x)
     predictions = Activation(activation, dtype='float32', name='predictions')(x)
     adjusted_model = Model(inputs=base_model.input, outputs=predictions)    
-    # Freeze
-    if freeze != None:
-      for layers in adjusted_model.layers[:freeze]:
-        layers.trainable = False
     # Learning Configuration
     adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate, decay=decay_val)
     adam_opt = tf.keras.mixed_precision.LossScaleOptimizer(adam_opt)
@@ -177,6 +173,15 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
                   metrics=[ tf.keras.metrics.AUC(curve='ROC', name='ROC-AUC', multi_label = multi_label),
                             tf.keras.metrics.AUC(curve='PR', name='PR-AUC', multi_label = multi_label),
                             'accuracy'])
+    
+  # Freeze
+  if freeze != None:
+    for layers in adjusted_model.layers[:freeze]:
+      layers.trainable = False
+  else:
+    for layers in adjusted_model.layers:
+      layers.trainable = True
+
   # Data Loaders
   train_gen = ImageDataGenerator(rotation_range= rotation_range,
                                  fill_mode= fill_mode,
