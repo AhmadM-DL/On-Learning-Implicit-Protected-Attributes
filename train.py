@@ -159,12 +159,15 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
       print(f"Resuming from epoch {start_epoch}")
   else:
     # Load and Set model
-    base_model = model(input_tensor = Input(input_shape), include_top = False, 
-                      input_shape = input_shape, weights = weights)
-    x = GlobalAveragePooling2D()(base_model.output)
-    x = Dense(n_labels, name='dense_logits')(x)
-    predictions = Activation(activation, dtype='float32', name='predictions')(x)
-    adjusted_model = Model(inputs=base_model.input, outputs=predictions)    
+    if os.path.isfile(weights):
+      adjusted_model = load_model(weights)
+    else:
+      base_model = model(input_tensor = Input(input_shape), include_top = False, 
+                        input_shape = input_shape, weights = weights)
+      x = GlobalAveragePooling2D()(base_model.output)
+      x = Dense(n_labels, name='dense_logits')(x)
+      predictions = Activation(activation, dtype='float32', name='predictions')(x)
+      adjusted_model = Model(inputs=base_model.input, outputs=predictions)    
     # Learning Configuration
     adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate, decay=decay_val)
     adam_opt = tf.keras.mixed_precision.LossScaleOptimizer(adam_opt)
