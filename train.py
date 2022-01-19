@@ -159,7 +159,7 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
       print(f"Resuming from epoch {start_epoch}")
   else:
     # Load and Set model
-    if os.path.isfile(weights):
+    if weights!=None and os.path.isfile(weights):
       model_transfer = keras.models.load_model(weights)
       x = GlobalAveragePooling2D()(model_transfer.layers[-4].output)
       x = tf.keras.layers.Dense(n_labels, name='dense_logits')(x)
