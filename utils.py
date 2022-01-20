@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.utils import shuffle
 import os 
 
-def plot_confusion_matrix(data, labels, title):
+def plot_confusion_matrix(data, labels, title,output_dir):
     fig, ax = plt.subplots()
     pos = ax.matshow(data, cmap='seismic')
     for (i, j), z in np.ndenumerate(data):
@@ -17,6 +17,7 @@ def plot_confusion_matrix(data, labels, title):
     ax.xaxis.set_label_position('top') 
     ax.set_xticklabels([""]+labels)
     ax.set_title(title, position=(0.5, 1.2))
+    fig.savefig(output_dir)
     return ax
 
 def validate_split(split_filename, check_stratified_on_race=False):
