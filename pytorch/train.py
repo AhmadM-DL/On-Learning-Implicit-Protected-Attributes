@@ -176,11 +176,11 @@ for epoch in range(1, N_EPOCHS):
         race_accuracies.append( (race.argmax(axis=1) == race_logits.argmax(axis=1)).sum()/len(race)*100)
         all_pathology_scores.extend(pathology_scores.cpu().detach().numpy().tolist())
         all_pathology_targets.extend(pathology.cpu().detach().numpy().tolist())
-        break
+        #break
     writer.add_scalar("train_loss", np.mean(losses), global_step=epoch)
     writer.add_scalar("train_race_accuracy", np.mean(race_accuracies), global_step=epoch)
     writer.add_scalar("train_auc_roc", roc_auc_score(all_pathology_targets, all_pathology_scores))
-    break
+    #break
 
 
 
