@@ -4,7 +4,9 @@ from torch import nn
 import torch.nn.functional as F
 from torch.nn.modules import linear
 from torch.utils.data import Dataset, DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from torchvision import models, transforms
+from sklearn.metrics import roc_auc_score
 
 import pandas as pd
 import numpy as np
@@ -109,6 +111,7 @@ class TwoHeadModel(nn.Module):
             nn.Flatten(),
             nn.Linear(1024, head2_size)
         )
+
     def forward(self, x):
         x = self.features(x)
         y1 = self.head1(x)
@@ -119,6 +122,7 @@ MODEL = "densenet121"
 NORMALIZE = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 ROOT = "./"
+N_EPOCHS = 20
 #%%
 model = models.__dict__[MODEL]()
 myModel = TwoHeadModel(model.features, 14, 3)
@@ -145,20 +149,38 @@ optimizer = torch.optim.Adam(myModel.parameters(), lr=0.01)
 pathology_loss = nn.BCELoss()
 race_loss = nn.CrossEntropyLoss()
 
-for i, (images, pathology, race) in enumerate(validation_dataloader):
-    images = images.to(device)
-    pathology = pathology.type(torch.int32).to(device)
-    race = race.type(torch.int32).to(device)
+writer = SummaryWriter(log_dir="./")
 
-    optimizer.zero_grad()
+for epoch in range(1, N_EPOCHS):
+    losses = []
+    race_accuracies = []
+    all_pathology_scores = []
+    all_pathology_targets = []
 
-    pathology_logits, race_logits = myModel(images)
-    loss = pathology_loss(pathology, torch.sigmoid(pathology_logits, dtype= torch.int32)) + race_loss(race, F.softmax(race_logits, dtype= torch.int32))
-    batch_loss_value = loss.item()
-    loss.backward()
-    optimizer.step()
-    print(batch_loss_value)
+    for i, (images, pathology, race) in enumerate(validation_dataloader):
+        images = images.to(device)
+        pathology = pathology.type(torch.float32).to(device)
+        race = race.type(torch.float32).to(device)
+        optimizer.zero_grad()
 
+        pathology_logits, race_logits = myModel(images)
+        pathology_scores = torch.sigmoid(pathology_logits)
+        race_proba = F.softmax(race_logits, dim=1)
+        
+        #break 
+        loss = pathology_loss(pathology, pathology_scores) + race_loss(race, race_proba)
+        loss.backward()
+        optimizer.step()
+
+        losses.append(loss.item())
+        race_accuracies.append( (race.argmax(axis=1) == race_logits.argmax(axis=1)).sum()/len(race)*100)
+        all_pathology_scores.extend(pathology_scores.cpu().detach().numpy().tolist())
+        all_pathology_targets.extend(pathology.cpu().detach().numpy().tolist())
+        break
+    writer.add_scalar("train_loss", np.mean(losses), global_step=epoch)
+    writer.add_scalar("train_race_accuracy", np.mean(race_accuracies), global_step=epoch)
+    writer.add_scalar("train_auc_roc", roc_auc_score(all_pathology_targets, all_pathology_scores))
+    break
 
 
 
