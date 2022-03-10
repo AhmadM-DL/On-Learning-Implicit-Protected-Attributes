@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.utils import shuffle
 import os 
 
-def plot_confusion_matrix(data, labels, title):
+def plot_confusion_matrix(data, labels, title,output_dir):
     fig, ax = plt.subplots()
     pos = ax.matshow(data, cmap='seismic')
     for (i, j), z in np.ndenumerate(data):
@@ -17,6 +17,7 @@ def plot_confusion_matrix(data, labels, title):
     ax.xaxis.set_label_position('top') 
     ax.set_xticklabels([""]+labels)
     ax.set_title(title, position=(0.5, 1.2))
+    fig.savefig(output_dir)
     return ax
 
 def validate_split(split_filename, check_stratified_on_race=False):
@@ -120,8 +121,8 @@ def _split(df, train_ratio, valid_ratio, test_ratio):
     df.loc[df.patient_id.isin(test_sub_id), "split"]="test"
     return df
 
-def plot_aur_roc_curves(auc_roc_dictionary, auc_roc_scores, title):
-    _, ax = plt.subplots(figsize=(10, 5))
+def plot_aur_roc_curves(auc_roc_dictionary, auc_roc_scores, title,output_dir):
+    fig, ax = plt.subplots(figsize=(10, 5))
     for label, auc_roc in auc_roc_dictionary.items():
         fpr = auc_roc["fpr"]
         tpr = auc_roc["tpr"]
@@ -130,4 +131,5 @@ def plot_aur_roc_curves(auc_roc_dictionary, auc_roc_scores, title):
     ax.set_ylabel("True Positive Rate")
     ax.set_title(title)
     ax.legend(loc=(1.02, 0))
+    fig.savefig(output_dir)
     return ax

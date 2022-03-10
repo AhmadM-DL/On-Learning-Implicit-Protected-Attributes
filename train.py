@@ -159,32 +159,36 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
       print(f"Resuming from epoch {start_epoch}")
   else:
     # Load and Set model
-    if os.path.isfile(weights):
-      adjusted_model = load_model(weights)
+    if weights!=None and os.path.isfile(weights):
+      model_transfer = keras.models.load_model(weights)
+      x = GlobalAveragePooling2D()(model_transfer.layers[-4].output)
+      x = tf.keras.layers.Dense(n_labels, name='dense_logits')(x)
+      predictions = Activation(activation, dtype='float32', name='predictions')(x)
+      adjusted_model = Model(inputs=[model_transfer.input], outputs=[predictions])
     else:
       base_model = model(input_tensor = Input(input_shape), include_top = False, 
                         input_shape = input_shape, weights = weights)
       x = GlobalAveragePooling2D()(base_model.output)
       x = Dense(n_labels, name='dense_logits')(x)
       predictions = Activation(activation, dtype='float32', name='predictions')(x)
-      adjusted_model = Model(inputs=base_model.input, outputs=predictions)    
-    # Learning Configuration
-    adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate, decay=decay_val)
-    adam_opt = tf.keras.mixed_precision.LossScaleOptimizer(adam_opt)
-    # Compile
-    adjusted_model.compile(optimizer=adam_opt, loss='binary_crossentropy',
-                  metrics=[ tf.keras.metrics.AUC(curve='ROC', name='ROC-AUC', multi_label = multi_label),
-                            tf.keras.metrics.AUC(curve='PR', name='PR-AUC', multi_label = multi_label),
-                            'accuracy'])
-    
+      adjusted_model = Model(inputs=base_model.input, outputs=predictions)   
+
   # Freeze
   if freeze != None:
     for layers in adjusted_model.layers[:freeze]:
       layers.trainable = False
   else:
     for layers in adjusted_model.layers:
-      layers.trainable = True
+      layers.trainable = True 
 
+  # Learning Configuration
+  adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate, decay=decay_val)
+  adam_opt = tf.keras.mixed_precision.LossScaleOptimizer(adam_opt)
+  # Compile
+  adjusted_model.compile(optimizer=adam_opt, loss='binary_crossentropy',
+                metrics=[ tf.keras.metrics.AUC(curve='ROC', name='ROC-AUC', multi_label = multi_label),
+                          tf.keras.metrics.AUC(curve='PR', name='PR-AUC', multi_label = multi_label),
+                            'accuracy'])
   # Data Loaders
   train_gen = ImageDataGenerator(rotation_range= rotation_range,
                                  fill_mode= fill_mode,
