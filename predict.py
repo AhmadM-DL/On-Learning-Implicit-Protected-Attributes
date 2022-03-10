@@ -26,6 +26,10 @@ def prepare_split_dataset(dataset_path, split_path):
 
 def predict(dataset, split_path, model_name, pretrain_model_path, output_dir,
            tag="test_predict_probability", batch_size= 32, class_mode= "raw", height=320, width=320):
+  """ A methd that loades a pretrained model and evaluate its output over the corresponding test split
+      returns all predictions of all images along side the ground truth and the labels of the classes
+  """
+  
   # Preparing Datasets
   if "chexpert" in dataset.lower():
     img_root_dir = "./Datasets/Chexpert/"

@@ -6,6 +6,10 @@ from predict import predict
 
 def eval(dataset, split_path, model_name, pretrain_model_path, output_dir, multilabel,
          batch_size= 32, class_mode= "raw", height=320, width=320):
+  """ A method to evaluate pretrained models agains th corresponding ground truth
+      if multilable returns roc_auc_curves and roc_auc_scores 
+      if multiclass returns accuracy and confusion matrix
+  """
   metrics = {}
   predictions, gt, labels = predict(dataset, split_path, model_name, pretrain_model_path, output_dir=output_dir,
                             tag="test_predict_probability", batch_size= batch_size, class_mode= class_mode, 

@@ -4,7 +4,8 @@ import pandas as pd
 from sklearn.utils import shuffle
 import os 
 
-def plot_confusion_matrix(data, labels, title,output_dir):
+def plot_confusion_matrix(data, labels, title, output_dir):
+    # Takes a 2d data array representing confusion matrix and plot it 
     fig, ax = plt.subplots()
     pos = ax.matshow(data, cmap='seismic')
     for (i, j), z in np.ndenumerate(data):
@@ -20,7 +21,13 @@ def plot_confusion_matrix(data, labels, title,output_dir):
     fig.savefig(output_dir)
     return ax
 
+
 def validate_split(split_filename, check_stratified_on_race=False):
+  """ A utility to test a split_file for :
+      1- no patient traverse different training data split [train/test/valid]
+      2- applying split X dataset result in a subset that is balanced over race
+      3- in case stratified is required, check each split [train/test/valid] have teh same number of records for each race
+  """
   ROOTDIR='./Datasets/Chexpert/csv/'
   
   data_df = pd.read_csv( os.path.join(ROOTDIR, 'train.csv') )
@@ -57,6 +64,12 @@ def validate_split(split_filename, check_stratified_on_race=False):
     assert len(validation_df.race.value_counts().unique()) == 1
 
 def race_balanced_split(seed, output_dir, max_images_per_patient, splits_ratio = (.8, .1, .1)):
+    """ A utility that split chexpert dataset and return and save a split file.
+        The split should be 
+        1- following the splits_ratio
+        2- resulting in a balanced dataset
+        3- use only images per patient as in max_images_per_patient
+    """
     ROOTDIR='./Datasets/Chexpert/csv/'
     output_filename = f"chexpert_{splits_ratio[0]}_{splits_ratio[1]}_{splits_ratio[2]}_{seed}_{max_images_per_patient}.csv"
 
@@ -122,6 +135,10 @@ def _split(df, train_ratio, valid_ratio, test_ratio):
     return df
 
 def plot_aur_roc_curves(auc_roc_dictionary, auc_roc_scores, title,output_dir):
+    """ A utility that takes the fpr,tpr of a set of labels (auc_roc_disctionary) trained
+        in a multilabel fashion along with the auc_roc score (auc_roc_scores)
+        and plot them after saving 
+    """
     fig, ax = plt.subplots(figsize=(10, 5))
     for label, auc_roc in auc_roc_dictionary.items():
         fpr = auc_roc["fpr"]

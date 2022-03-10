@@ -17,15 +17,19 @@ from tensorflow.python.training.tracking.util import Checkpoint
 CHECKPOINTS_DIR = "checkpoints"
 
 def set_seed(seed):
+  """ A function to fix teh seed of different random generators used so far"""
+  # Todo set pytoch seeds
   np.random.seed(seed)
   random.seed(seed)
   tf.random.set_seed(seed)
 
 def use_mixed_precision():
+  """ Set tensorflow mixed precision policy; it speeds up training"""
   policy = mixed_precision.Policy('mixed_float16')
   mixed_precision.set_policy(policy)
 
 def get_values_percent_as_str(series):
+  """ Return the percent of values in a given pandas series"""
   value_ratios = series.value_counts(normalize=True).round(1)
   value_percents = (100*value_ratios).astype("int")
   value_percents_dict = value_percents.to_dict()
@@ -33,6 +37,7 @@ def get_values_percent_as_str(series):
   return value_percents_str
 
 def get_split_percent_as_str(train_df, valid_df, test_df):
+  """ Return the split ratio of train/valid/test datasets"""
   total_size = train_df.size + valid_df.size + test_df.size
   train_ratio = train_df.size/total_size*100
   valid_ratio = valid_df.size/total_size*100
@@ -40,6 +45,10 @@ def get_split_percent_as_str(train_df, valid_df, test_df):
   return f"train({train_ratio:.3})_valid({valid_ratio:.3})_test({test_ratio:.3})"
 
 def prepare_split_dataset(dataset_path, split_path):
+  """ Read the csv dataset referenced in dataset_path and cross it with a split csv file that defines
+      the location (train/test/valid/ignore) of each record in the referenced datset. It returns
+      the splitted dataset.
+  """
   data_df = pd.read_csv(dataset_path, index_col=0).reset_index()
   split_df = pd.read_csv(split_path, index_col=0).reset_index()
   data_df = pd.merge(data_df, split_df, on="index")
@@ -52,42 +61,51 @@ def prepare_split_dataset(dataset_path, split_path):
   return train_df, validation_df, test_df
 
 class MyCallback(keras.callbacks.Callback):
+  """ A class that defines a set of callbacks to call at different events during training."""
+  def __init__(self, output_dir, checkpoint_filename, resume_filename="resume_info.json", verbose=0):
+    self.output_dir = output_dir
+    self.resume_filename= resume_filename
+    self.checkpoint_filename = checkpoint_filename
+    self.verbose = verbose
 
-    def __init__(self, output_dir, checkpoint_filename, resume_filename="resume_info.json", verbose=0):
-      self.output_dir = output_dir
-      self.resume_filename= resume_filename
-      self.checkpoint_filename = checkpoint_filename
-      self.verbose = verbose
+    if os.path.isfile(os.path.join(self.output_dir, self.resume_filename)):
+      self.lastInfo = json.load( open(os.path.join(self.output_dir, self.resume_filename), "r"))
+    else:
+      self.lastInfo = {"last_epoch": None, "best_epoch": None, "best_val_loss": math.inf}
 
-      if os.path.isfile(os.path.join(self.output_dir, self.resume_filename)):
-        self.lastInfo = json.load( open(os.path.join(self.output_dir, self.resume_filename), "r"))
-      else:
-        self.lastInfo = {"last_epoch": None, "best_epoch": None, "best_val_loss": math.inf}
+    if not os.path.isdir(os.path.join(self.output_dir, CHECKPOINTS_DIR)):
+      os.mkdir(os.path.join(self.output_dir, CHECKPOINTS_DIR))
 
-      if not os.path.isdir(os.path.join(self.output_dir, CHECKPOINTS_DIR)):
-        os.mkdir(os.path.join(self.output_dir, CHECKPOINTS_DIR))
+  def on_epoch_end(self, epoch, logs=None):
+    """ When a training epoch ends do teh followg:
+        1- If the new loss is better than the lates loss defined in resume_info.json
+           set the current loss/ epoch as the new best and save in resume_info.json
+           then save the model as best model overwriting the previous one
+        2- Save the current epoch as last epoch in resume_info.json
+    """
+    if self.verbose:
+      print(f"SaveInfoForResume epoch ({epoch}) : loss ({logs['val_loss']}) : is best {logs['val_loss'] < self.best_valid_loss}")
+    
+    if logs["val_loss"] < self.lastInfo["best_val_loss"]:
+      self.lastInfo["best_val_loss"] = logs["val_loss"]
+      self.lastInfo["best_epoch"] = epoch
+      self.model.save(os.path.join(self.output_dir, CHECKPOINTS_DIR, self.checkpoint_filename))
 
-    def on_epoch_end(self, epoch, logs=None):
-      if self.verbose:
-        print(f"SaveInfoForResume epoch ({epoch}) : loss ({logs['val_loss']}) : is best {logs['val_loss'] < self.best_valid_loss}")
-      
-      if logs["val_loss"] < self.lastInfo["best_val_loss"]:
-        self.lastInfo["best_val_loss"] = logs["val_loss"]
-        self.lastInfo["best_epoch"] = epoch
-        self.model.save(os.path.join(self.output_dir, CHECKPOINTS_DIR, self.checkpoint_filename))
-
-      self.lastInfo["last_epoch"] = epoch
-      resume_file =  open(os.path.join(self.output_dir, self.resume_filename), "w")
-      json.dump(self.lastInfo, resume_file)
-      resume_file.close()
+    self.lastInfo["last_epoch"] = epoch
+    resume_file =  open(os.path.join(self.output_dir, self.resume_filename), "w")
+    json.dump(self.lastInfo, resume_file)
+    resume_file.close()
 
 
 class LRTensorBoard(tf.keras.callbacks.TensorBoard):
-    # add other arguments to __init__ if you need
+    """ Onther class that defines a set of callbacks to call at different events during training.
+        Specific for tensorboard.
+    """
     def __init__(self, log_dir, **kwargs):
         super().__init__(log_dir=log_dir, **kwargs)
 
     def on_epoch_end(self, epoch, logs=None):
+        """ Add learning rate to tensorboard logs"""
         logs = logs or {}
         logs.update({'lr': tf.keras.backend.eval(self.model.optimizer.lr)})
         super().on_epoch_end(epoch, logs)
@@ -99,6 +117,11 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
           rotation_range=15, fill_mode="constant", horizontal_flip= True,
           crop_to_aspect_ratio= True, zoom_range=0.1,
           class_mode= "raw", reduce_lr_on_plateau=True, verbose=0):
+  """ A function that abstracts training procedure using both multi-class and multi-label approaches 
+      Parameters:
+      dataset: a string that specify the dataset to train on ['chexpert_pathology','chexpert_race']
+      model_name: a string that specify the model to use from classification_models.tfkeras.Classifiers modeule
+  """
 
   # save arguments
   arguments_dict = {
@@ -114,18 +137,19 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
     "reduce_lr_on_plateau": reduce_lr_on_plateau,
     "n_epochs" : n_epochs,
   }
-
   arguments_file = open(os.path.join(output_dir, "params.json"), "w")
   json.dump(arguments_dict, arguments_file)
   arguments_file.close()
 
   set_seed(seed)
 
+  # In case of multilabel the final activation function is sigmoid so that all teh outputs have a value between 0 and 1
   if multi_label:
       activation = "sigmoid"
   else:
       activation = "softmax"
 
+  # Load datasets files from hard-coded paths 
   if "chexpert" in dataset.lower():
     img_root_dir = "./Datasets/Chexpert/"
     if "pathology" in dataset.lower():
@@ -138,34 +162,43 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
     raise Exception("Not supported dataset")
 
   # Preparing Datasets
+  # Split the loaded dataset based on the passed split_file path. the split file is a one column csv file
+  # that specifies the location of each record [train/test/valid/ignore]
   train_df, validation_df, test_df = prepare_split_dataset(dataset_path, split_file)
-  # TODO remove in production
+  
+  # # Remove in production
   # train_df = train_df.iloc[:100, :]
   # validation_df = validation_df.iloc[:100, :]
 
+  # Compose the experiment name to be used for logs
   arc_name = f"{tag}_{height}x{width}_{get_split_percent_as_str(train_df, validation_df, test_df)}_{model_name}"
 
   # Load model
   model, preprocess_input = Classifiers.get(model_name)
 
-  # Adjust head
+  # Adjust input shape
+  # So far we have rgb images only
   input_shape = (height, width, 3)
 
   # Resume
   start_epoch = 0
   if resume and os.path.isfile(os.path.join(output_dir, "resume_info.json")):
+      # Load the resume_info.json file and continue from the latest epoch
       start_epoch = json.load(open(os.path.join(output_dir, "resume_info.json")))["last_epoch"]
       adjusted_model = load_model(os.path.join(output_dir, CHECKPOINTS_DIR, arc_name + ".hdf5"))
       print(f"Resuming from epoch {start_epoch}")
   else:
     # Load and Set model
     if weights!=None and os.path.isfile(weights):
+      # In case of weights are specified (hdf5 file path) load from them
+      # used to start training from a pretrained model
       model_transfer = keras.models.load_model(weights)
       x = GlobalAveragePooling2D()(model_transfer.layers[-4].output)
       x = tf.keras.layers.Dense(n_labels, name='dense_logits')(x)
       predictions = Activation(activation, dtype='float32', name='predictions')(x)
       adjusted_model = Model(inputs=[model_transfer.input], outputs=[predictions])
     else:
+      # Load base model and add classification head based on parameters
       base_model = model(input_tensor = Input(input_shape), include_top = False, 
                         input_shape = input_shape, weights = weights)
       x = GlobalAveragePooling2D()(base_model.output)
@@ -175,6 +208,8 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
 
   # Freeze
   if freeze != None:
+    # Freeze the model layers upto the layer specified by "freeze"
+    # e.g. -2 will freeze all layers except for the last two layers.
     for layers in adjusted_model.layers[:freeze]:
       layers.trainable = False
   else:
@@ -184,11 +219,13 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   # Learning Configuration
   adam_opt = tf.keras.optimizers.Adam(learning_rate=learning_rate, decay=decay_val)
   adam_opt = tf.keras.mixed_precision.LossScaleOptimizer(adam_opt)
+  
   # Compile
   adjusted_model.compile(optimizer=adam_opt, loss='binary_crossentropy',
                 metrics=[ tf.keras.metrics.AUC(curve='ROC', name='ROC-AUC', multi_label = multi_label),
                           tf.keras.metrics.AUC(curve='PR', name='PR-AUC', multi_label = multi_label),
                             'accuracy'])
+  
   # Data Loaders
   train_gen = ImageDataGenerator(rotation_range= rotation_range,
                                  fill_mode= fill_mode,
@@ -223,9 +260,13 @@ def train(dataset, split_file, tag, model_name, seed, weights, n_labels,
   save_last_model = ModelCheckpoint(
     os.path.join(output_dir, CHECKPOINTS_DIR, arc_name + ".hdf5"),
     verbose=1, save_weights_only=False, save_freq='epoch')
+  
   custome_callback = MyCallback(output_dir, checkpoint_filename= arc_name + "_best.hdf5")
+  
   log_dir = os.path.join(output_dir, 'logs', datetime.now().strftime("%Y%m%d-%H%M%S"))
+  
   tensorboard_callback = LRTensorBoard(log_dir=log_dir, histogram_freq=1)
+  
   if reduce_lr_on_plateau:
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', mode='min', factor=0.1, patience=2, min_lr=1e-5, verbose=verbose)
   else:
