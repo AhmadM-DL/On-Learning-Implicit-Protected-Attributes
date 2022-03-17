@@ -12,7 +12,63 @@ To remove any bais in performance we created a balanced data set over race. The 
 
 For the code to work the Chexpert small dataset have to be doanload from [chexpert official site](https://stanfordmlgroup.github.io/competitions/chexpert/).
 
-Below is an examperiment snippet:
+Below is an examplary code snippets for colab:
+
+```
+# Clone Repo
+!git clone https://github.com/AhmadM-DL/On-Learning-Implicit-Protected-Attributes
+
+
+# Download Dependencies
+!pip install -r .../On-Learning-Implicit-Protected-Attributes/requirments.txt
+
+# Import scripts
+import sys, os, importlib
+sys.path.append(".../On-Learning-Implicit-Protected-Attributes")
+from train import train
+from eval import eval 
+from utils import plot_aur_roc_curves
+import os
+
+# Unzip Chexpert Small
+!unzip ".../CheXpert-v1.0-small.zip"
+
+# Move unzipped dataset to repo/Datasets/Chexpert 
+!mv ".../CheXpert-v1.0-small" ".../Datasets/Chexpert"
+
+# Set repo root as working directory
+%cd ".../On-Learning-Implicit-Protected-Attributes"
+
+# Train
+train(dataset= ..., 
+      split_file= {use preprepared split files in Datasets/Chexpert/Splits},
+      tag= ...,
+      model_name= ...,
+      seed= ...,
+      weights= ...,
+      n_labels= ...,
+      freeze= ...,
+      resume= ...,
+      output_dir= ....,
+      multi_label= ...,
+      verbose=...
+      )
+
+# Evaluate
+m = eval(
+     dataset= ..., 
+     split_path= ...,
+     model_name= ...,
+     pretrain_model_path = ...,
+     output_dir = ...,
+     multilabel = ...
+     )
+
+# Check Tensorboard Logs
+%load_ext tensorboard
+%tensorboard --logdir ".../logs"
+```
+
 
 
 
